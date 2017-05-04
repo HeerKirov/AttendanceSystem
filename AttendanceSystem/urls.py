@@ -16,8 +16,10 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.conf.urls import include
+from rest_framework import urls as RESTurls
 
 urlpatterns = [
-    url(r'^/',include('main.urls')),
-    url(r'^admin/', admin.site.urls),
+    url(r'^', include('main.urls')),
+    # url(r'^admin/', admin.site.urls),
+    url(r'api-auth', include(RESTurls))
 ]

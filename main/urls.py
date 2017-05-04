@@ -17,7 +17,14 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.conf.urls import include
 from . import views
+from rest_framework.routers import DefaultRouter
+
+r = DefaultRouter()
+r.register(r'auth/users', views.UserViewSet)
+r.register(r'auth/users', views.UserViewDetailSet)
+r.register(r'auth/students', views.StudentViewSet)
+r.register(r'auth/students', views.StudentDetailViewset)
 
 urlpatterns = [
-   # url(r'^$', views.index),
+    url(r'^', include(r.urls))
 ]

@@ -1,11 +1,15 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import User as defaultUser
+from . import authority
 
 GENDER_ENUM = (
-    ('MALE', 'MALE'),
-    ('FEMALE', 'FEMALE')
+    ('MALE', '男'),
+    ('FEMALE', '女')
 )
 ATTENDANCE_STATUS = (
-
+    # todo 待补充完毕
 )
 APPROVE_STATUS = (
     ('approving', '审批中'),
@@ -21,84 +25,112 @@ WEEKDAYS = (
     ('Saturday', '周六'),
     ('Sunday', '周日')
 )
+
+AuthUser = get_user_model()
 # Create your models here.
 
 
 # 使用者用户模型
 class User(models.Model):
-    id = models.CharField(max_length=16, primary_key=True)
-    name = models.CharField(max_length=16)
-    gender = models.CharField(max_length=6, choices=GENDER_ENUM)
-    password = models.CharField(max_length=255)
-    register_time = models.DateTimeField()
-    last_login_time = models.DateTimeField()
-    is_active = models.BooleanField()
+    id = models.OneToOneField(defaultUser, related_name='profile', primary_key=True)
+    username = models.CharField(unique=True, max_length=30)
+    name = models.CharField(max_length=16, null=True, blank=True)
+    gender = models.CharField(max_length=6, choices=GENDER_ENUM, null=True, blank=True)
+    register_time = models.DateTimeField(auto_now_add=True)
+    last_login_time = models.DateTimeField(auto_now=True)
     # asStudent, asTeacher, asInstructor, asOffice, asAdmin, Authority
+
+    def __str__(self):
+        return "%s - %s" % (self.username, self.name)
 
 
 # 使用者权限
 class Authority(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # todo 需要思考一种补充动态权限的方式
-
-
-# 作为辅导员
-class AsInstructor(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # classs_set
-
-
-# 班级(注意这里写了3个s！！！！)
-class Classs(models.Model):
-    grade = models.IntegerField()
-    college = models.CharField(max_length=16, blank=True)
-    major = models.CharField(max_length=25, blank=True)
-    no = models.IntegerField()
-    as_instructor_set = models.ManyToManyField(AsInstructor, related_name='classs_set')
-    # as_student_set
-
-
-# 作为教师
-class AsTeacher(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # course_set
-
-
-# 作为教务处
-class AsOffice(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-
-
-# 作为管理员
-class AsAdmin(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-
-
-# 课程
-class Course(models.Model):
-    name = models.CharField(max_length=50)
-    teacher = models.ForeignKey(AsTeacher, related_name='course_set', on_delete=models.SET_NULL, null=True)
-    # as_student_set
-    # course_schedule_set
-    # exchange_set
-    # attendance_set
+    id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='authority', primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='authority')
+    auth = models.BigIntegerField()
 
 
 # 作为学生
 class AsStudent(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    classs = models.ForeignKey(Classs, related_name='as_student_set', on_delete=models.SET_NULL, null=True)
-    course_set = models.ManyToManyField(Course, related_name='as_student_set')
+    id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_student', primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_student')
+    username = models.CharField(max_length=30, unique=True)
+    classs = models.ForeignKey('Classs', related_name='as_student_set', on_delete=models.SET_NULL, null=True)
+    course_set = models.ManyToManyField('Course', related_name='as_student_set')
     # classroom_record_set
     # leave_record_set
     # attendance_record_set
 
 
+# 作为教师
+class AsTeacher(models.Model):
+    id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_teacher', primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_teacher')
+    username = models.CharField(max_length=30, unique=True)
+    # course_set
+
+
+# 作为辅导员
+class AsInstructor(models.Model):
+    id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_instructor', primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_instructor')
+    username = models.CharField(max_length=30, unique=True)
+    # classs_set
+
+
+# # 作为教务处
+# class AsOffice(models.Model):
+#     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE)
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_office')
+#
+#
+# # 作为管理员
+# class AsAdmin(models.Model):
+#     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE)
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_admin')
+
+
+# 班级(注意这里写了3个s！！！！)
+class Classs(models.Model):
+    id = models.CharField(max_length=16, primary_key=True, unique=True)
+    grade = models.IntegerField()
+    college = models.CharField(max_length=16, blank=True)
+    major = models.CharField(max_length=25, blank=True)
+    number = models.IntegerField()
+    as_instructor_set = models.ManyToManyField(AsInstructor, related_name='classs_set')
+    # as_student_set
+
+    def __str__(self):
+        return "%s-%s-%s.%s" % (self.college, self.major, self.grade, self.number)
+
+
+# 课程
+class Course(models.Model):
+    id = models.CharField(max_length=16, primary_key=True, unique=True)
+    name = models.CharField(max_length=50)
+    teacher = models.ForeignKey(AsTeacher, related_name='course_set', on_delete=models.SET_NULL, null=True)
+    # as_student_set
+    # course_schedule_set
+    # exchange_set
+
+
+class CourseManage(models.Model):
+    id = models.OneToOneField(Course, related_name='course_manage', primary_key=True)
+    # attendance_set
+
+
 # 教室
 class Classroom(models.Model):
+    id = models.CharField(max_length=16, primary_key=True, unique=True)
     name = models.CharField(max_length=16, unique=True)
     size = models.IntegerField()
     # course_schedule_set
+
+
+class ClassroomManage(models.Model):
+    id = models.OneToOneField(Classroom, related_name='classroom_manage', primary_key=True)
+    password = models.CharField(max_length=255, null=True, blank=True, unique=True)
     # classroom_record_set
 
 
@@ -122,7 +154,7 @@ class AttendanceRecord(models.Model):
     course_number = models.CharField(max_length=255)
     status = models.CharField(choices=ATTENDANCE_STATUS, max_length=12)
     student = models.ForeignKey(AsStudent, related_name='attendance_record_set', on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, related_name='attendance_record_set', on_delete=models.CASCADE)
+    course_manage = models.ForeignKey(CourseManage, related_name='attendance_record_set', on_delete=models.CASCADE)
 
 
 # 学生请假记录
@@ -139,7 +171,7 @@ class ClassroomRecord(models.Model):
     time_in = models.DateTimeField()
     time_out = models.DateTimeField(null=True, blank=True)
     student = models.ForeignKey(AsStudent, related_name='classroom_record_set', on_delete=models.CASCADE)
-    classroom = models.ForeignKey(Classroom, related_name='classroom_record_set', on_delete=models.CASCADE)
+    classroom_manage = models.ForeignKey(ClassroomManage, related_name='classroom_record_set', on_delete=models.CASCADE)
 
 
 # 调课记录
