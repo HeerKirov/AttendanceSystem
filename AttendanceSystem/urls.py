@@ -17,9 +17,12 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.conf.urls import include
 from rest_framework import urls as RESTurls
+from main import urls as main_urls
+from main.views import index as index_view
 
 urlpatterns = [
-    url(r'^', include('main.urls')),
+    url(r'^$', index_view),
+    url(r'^api/', include('main.urls')),
     # url(r'^admin/', admin.site.urls),
-    url(r'api-auth', include(RESTurls))
+    url(r'^api-auth/', include(RESTurls))
 ]

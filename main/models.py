@@ -112,12 +112,12 @@ class Course(models.Model):
     teacher = models.ForeignKey(AsTeacher, related_name='course_set', on_delete=models.SET_NULL, null=True)
     # as_student_set
     # course_schedule_set
-    # exchange_set
+    # exchange_record_set
 
 
 class CourseManage(models.Model):
     id = models.OneToOneField(Course, related_name='course_manage', primary_key=True)
-    # attendance_set
+    # attendance_record_set
 
 
 # 教室

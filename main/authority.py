@@ -28,6 +28,14 @@ BELONG_AUTHORITY = [  # 身份从属权限的名单
     'Isub'
 ]
 
+ALL_AUTHORITY = [  # 全权限名单
+    'All',
+]
+
+
+class AllAuthorityName:  # 全权限代表名称
+    All = 'All'
+
 
 class AuthorityName:  # 普通权限的名称列表
     Root = 'Root'
@@ -104,21 +112,30 @@ def belong_to(obj, goal):
 
     if isinstance(obj, models.User):  # 源是用户，那么获取权限判断可能的上属。
         auth_number = obj.authority.auth
-        if has_auth(auth_number, AuthorityName.Student):  # 判断用户身份
-            if goal_is_office:
+        if has_auth(auth_number, AuthorityName.Student):  # 判断用户身份,这是学生身份
+            # 学生身份可能的直接上属来源有：class，course，教务处，学生管理权限。
+            if goal_is_office:  # 首先直接判断目标是否是教务处
                 return True
-            student_class = obj.as_student.classs
-            student_course_set = obj.as_student.course_set
-            if belong_to(student_class, goal):
+            if has_auth(goal_auth, AuthorityName.StudentManager):  # 然后，如果目标拥有学生管理权限
                 return True
-            for student_course in student_course_set.all():
-                if belong_to(student_course, goal):
+            if hasattr(obj.as_student, 'classs'):  # 保证不会报错
+                student_class = obj.as_student.classs
+                if belong_to(student_class, goal):  # 这里是判断是上属班级是不是目标的下属。
                     return True
+            if hasattr(obj.as_student, 'course_set'):  # 保证不会出错
+                student_course_set = obj.as_student.course_set
+                for student_course in student_course_set.all():
+                    if belong_to(student_course, goal):
+                        return True
         if has_auth(auth_number, AuthorityName.Teacher):
             if goal_is_office:
                 return True
+            if has_auth(goal_auth, AuthorityName.TeacherManager):  # 然后，检测目标是不是拥有教师管理权限
+                return True
         if has_auth(auth_number, AuthorityName.Instructor):
             if goal_is_office:
+                return True
+            if has_auth(goal_auth, AuthorityName.InstructorManager):  # 然后，检测目标是不是拥有辅导员管理权限
                 return True
         if has_auth(auth_number, AuthorityName.Office) or has_auth(auth_number, AuthorityName.Admin):
             if obj.id == goal.id:
@@ -133,10 +150,9 @@ def belong_to(obj, goal):
     elif isinstance(obj, models.Course):  # 源是一门课程
         if goal_is_office:
             return True
-        course_teacher = [tea.user for tea in obj.teacher.all()]
-        for user in course_teacher:
-            if belong_to(user, goal):
-                return False
+        course_teacher = obj.teacher  # 已修正bug：需要注意的是，在现有模型中课程只有一位教师。
+        if belong_to(course_teacher, goal):
+            return False
     elif isinstance(obj, models.CourseManage):  # 源是课程管理信息。
         return belong_to(obj.id, goal)
     elif isinstance(obj, models.Classroom):  # 源是教室。

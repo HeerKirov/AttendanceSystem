@@ -24,7 +24,20 @@ r.register(r'auth/users', views.UserViewSet)
 r.register(r'auth/users', views.UserViewDetailSet)
 r.register(r'auth/students', views.StudentViewSet)
 r.register(r'auth/students', views.StudentDetailViewset)
+r.register(r'auth/teachers', views.TeacherViewSet)
+r.register(r'auth/teachers', views.TeacherDetailViewSet)
+r.register(r'auth/instructors', views.InstructorViewSet)
+r.register(r'auth/instructors', views.InstructorDetailViewSet)
+r.register(r'class', views.ClasssViewSet)
+r.register(r'class', views.ClasssDetailViewSet)
+r.register(r'course/basic', views.CourseBasicViewSet)
+r.register(r'course/basic', views.CourseBasicDetailViewSet)
+r.register(r'course/manage', views.CourseManageViewSet)
+r.register(r'course/manage', views.CourseManageDetailViewSet)
 
 urlpatterns = [
     url(r'^', include(r.urls))
 ]
+
+
+
