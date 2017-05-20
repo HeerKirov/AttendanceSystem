@@ -13,19 +13,18 @@ AUTHORITY_BINARY = [  # 权限记录列表。(权限数字，英文标记，中�
     (128, 'StudentManager', '学生管理权限'),
     (256, 'TeacherManager', '教师管理权限'),
     (512, 'InstructorManager', '辅导员管理权限'),
-    (1024, 'OfficeManager', '教务处管理权限'),
-    (2048, 'CourseManager', '课程管理权限'),
-    (4096, 'ClassroomManager', '教室管理权限'),
-    (8192, 'ClassManager', '班级管理权限'),
-    (16384, 'IsSelf', '本人或所有者使用权限'),
-    (32768, 'IsParent', '上属者使用权限'),
-    (65536, 'IsSub', '下属者使用权限')
+    (1024, 'CourseManager', '课程管理权限'),
+    (2048, 'ClassroomManager', '教室管理权限'),
+    (4096, 'ClassManager', '班级管理权限'),
+    (8192, 'IsSelf', '本人或所有者使用权限'),
+    (16384, 'IsParent', '上属者使用权限'),
+    (32768, 'IsSub', '下属者使用权限')
 ]
 
 BELONG_AUTHORITY = [  # 身份从属权限的名单
     'IsSelf',
     'IsParent',
-    'Isub'
+    'IsSub'
 ]
 
 ALL_AUTHORITY = [  # 全权限名单
@@ -48,7 +47,6 @@ class AuthorityName:  # 普通权限的名称列表
     StudentManager = 'StudentManager'
     TeacherManager = 'TeacherManager'
     InstructorManager = 'InstructorManager'
-    OfficeManager = 'OfficeManager'
     CourseManager = 'CourseManager'
     ClassroomManager = 'ClassroomManager'
     ClassManager = 'ClassManager'
@@ -66,6 +64,19 @@ def update_authority():
     authority_list.clear()
     for n, en, chinese in AUTHORITY_BINARY:
         authority_list[en] = (chinese, int(math.log2(n)), n)
+
+
+def all_auth(authority):
+    """
+    将权限数字转化为完整的英文权限代号列表。
+    :param authority: 权限数字。
+    :return: 返回一个列表。
+    """
+    ret = []
+    for en, (_, _, _) in authority_list.items():
+        if has_auth(authority, en):
+            ret.append(en)
+    return ret
 
 
 def has_auth(authority, auth_name):

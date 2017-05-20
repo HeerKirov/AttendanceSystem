@@ -60,6 +60,13 @@ class UserAuthorityPermission(BasePermission):
         return False
 
 
+class Action:
+    class AuthorityPermision(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Root,),
+            'PUT': (AuthorityName.Root,),
+        }
+
 class User:
     class UserPermission(UserAuthorityPermission):
         auth_number = {
