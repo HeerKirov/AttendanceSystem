@@ -20,6 +20,7 @@ from . import views
 from rest_framework.routers import DefaultRouter
 
 r = DefaultRouter()
+r.register(r'action/auth', views.AuthAPIView)
 r.register(r'auth/users', views.UserViewSet)
 r.register(r'auth/users', views.UserViewDetailSet)
 r.register(r'auth/students', views.StudentViewSet)
@@ -36,7 +37,7 @@ r.register(r'course/manage', views.CourseManageViewSet)
 r.register(r'course/manage', views.CourseManageDetailViewSet)
 
 urlpatterns = [
-    url(r'^', include(r.urls))
+    url(r'^', include(r.urls)),
 ]
 
 

@@ -9,6 +9,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
+from .authority import has_auth, AuthorityName, all_auth, add_auth
+from django.contrib.auth.models import User as defaultUser
 import json
 
 # Create your views here.
@@ -45,7 +47,23 @@ def removeuser(request):
 
 
 def auth(request, pk):
-    pass
+    if not request.user.is_authenticated:
+        return HttpResponse('Permission Denied.', status=403)
+    auth_model = request.user.authority
+    if not has_auth(auth_model.auth, AuthorityName.Root):
+        return HttpResponse('Permission Denied.', status=403)
+    users = defaultUser.objects.filter(username=pk).first()
+    if users is None:
+        return HttpResponse('User is not exists.', status=404)
+    if request.method == 'GET':
+        auth_set = all_auth(auth_model.auth)
+        return HttpResponse(json.dumps(auth_set))
+    elif request.method == 'POST':
+        auth_set = json.loads(request.body)
+        auth_number = 0
+        add_auth(auth_number, auth_set)
+        auth_model.auth = auth_number
+        auth_model.save()
 
 
 def exchange_approve(request):
@@ -70,6 +88,13 @@ def timetable_now(request):
 
 def timetable_datetable(request):
     pass
+
+
+class AuthAPIView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    queryset = models.Authority.objects.all()
+    serializer_class = serializer.AuthoritySerializer
+    permission_classes = (permissions.Action.AuthorityPermision,)
+    lookup_field = 'id__username'
 
 
 class UserViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

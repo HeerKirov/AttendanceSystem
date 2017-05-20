@@ -3,6 +3,14 @@ from rest_framework import serializers
 from django.contrib.auth.models import User as defaultUser
 
 
+class AuthoritySerializer(serializers.ModelSerializer):
+    id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+
+    class Meta:
+        model = models.Authority
+        fields = ('id', 'auth')
+
+
 class UserSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
 
