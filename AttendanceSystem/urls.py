@@ -22,7 +22,8 @@ from main.views import index as index_view
 
 urlpatterns = [
     url(r'^$', index_view),
-    url(r'^api/', include('main.urls')),
+    url(r'^api/', include(main_urls.urlpatterns)),
+    url(r'^action/', include(main_urls.urlpatterns_action)),
     # url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include(RESTurls))
 ]

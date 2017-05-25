@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from . import models
 from . import authority as auth_check
-from .authority import AuthorityName, BelongName
+from .authority import AuthorityName, BelongName, AllAuthorityName
 
 
 class UserAuthorityPermission(BasePermission):
@@ -66,6 +66,7 @@ class Action:
             'GET': (AuthorityName.Root,),
             'PUT': (AuthorityName.Root,),
         }
+
 
 class User:
     class UserPermission(UserAuthorityPermission):
@@ -150,5 +151,103 @@ class Item:
         auth_number = {
             'GET': (BelongName.IsParent, AuthorityName.CourseManager, AuthorityName.Root)
         }
+
+    class ClassroomPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AllAuthorityName.All, AuthorityName.Root),
+            'POST': (AuthorityName.ClassroomManager, AuthorityName.Root),
+            'PUT': (AuthorityName.ClassroomManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.ClassroomManager, AuthorityName.Root)
+        }
+
+    class ClassroomManagePermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.ClassroomManager, AuthorityName.Root),
+            'PUT': (AuthorityName.ClassroomManager, AuthorityName.Root),
+        }
+
+
+class Record:
+    class ExchangeRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
+        }
+
+    class ExchangeDetailRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsParent, BelongName.IsSub, BelongName.IsSelf,
+                    AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
+        }
+
+    class ExchangeApplyPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root),
+            'POST': (AllAuthorityName.All, AuthorityName.Root)
+        }
+
+    class ExchangeApprovePermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root),
+            'PUT': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
+        }
+
+    class LeaveRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
+        }
+
+    class LeaveDetailRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsSelf, BelongName.IsParent,
+                    AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
+        }
+
+    class LeaveApplyPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root),
+            'POST': (AllAuthorityName.All, AuthorityName.Root)
+        }
+
+    class LeaveApprovePermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsParent, AuthorityName.Office, AuthorityName.Root),
+            'PUT': (BelongName.IsParent, AuthorityName.Office, AuthorityName.Root)
+        }
+
+    class ClassroomRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.ClassroomManager, AuthorityName.Root)
+        }
+
+    class ClassroomRecordDetailPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsParent, BelongName.IsSelf, AuthorityName.ClassroomManager, AuthorityName.Root)
+        }
+
+    class CourseSchedulePermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.CourseManager, AuthorityName.Root),
+            'POST': (AuthorityName.CourseManager, AuthorityName.Root)
+        }
+
+    class CourseScheduleDetailPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsParent, BelongName.IsSub, BelongName.IsSelf,
+                    AuthorityName.CourseManager, AuthorityName.Root),
+            'PUT': (AuthorityName.CourseManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.CourseManager, AuthorityName.Root)
+        }
+
+    class AttendanceRecordPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
+        }
+
+    class AttendanceRecordDetailPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (BelongName.IsSelf, BelongName.IsParent,
+                    AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
+        }
+
 
 

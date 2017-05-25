@@ -41,7 +41,7 @@ class User(models.Model):
     # asStudent, asTeacher, asInstructor, asOffice, asAdmin, Authority
 
     def __str__(self):
-        return "%s - %s" % (self.username, self.name)
+        return "<%s - %s>" % (self.username, self.name)
 
 
 # 使用者权限
@@ -49,6 +49,9 @@ class Authority(models.Model):
     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='authority', primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='authority')
     auth = models.BigIntegerField()
+
+    def __str__(self):
+        return "%s" % (self.user,)
 
 
 # 作为学生
@@ -58,6 +61,9 @@ class AsStudent(models.Model):
     username = models.CharField(max_length=30, unique=True)
     classs = models.ForeignKey('Classs', related_name='as_student_set', on_delete=models.SET_NULL, null=True)
     course_set = models.ManyToManyField('Course', related_name='as_student_set')
+
+    def __str__(self):
+        return "%s" % (self.user,)
     # classroom_record_set
     # leave_record_set
     # attendance_record_set
@@ -68,6 +74,9 @@ class AsTeacher(models.Model):
     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_teacher', primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_teacher')
     username = models.CharField(max_length=30, unique=True)
+
+    def __str__(self):
+        return "%s" % (self.user,)
     # course_set
 
 
@@ -76,6 +85,9 @@ class AsInstructor(models.Model):
     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_instructor', primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_instructor')
     username = models.CharField(max_length=30, unique=True)
+
+    def __str__(self):
+        return "%s" % (self.user,)
     # classs_set
 
 
@@ -110,6 +122,9 @@ class Course(models.Model):
     id = models.CharField(max_length=16, primary_key=True, unique=True)
     name = models.CharField(max_length=50)
     teacher = models.ForeignKey(AsTeacher, related_name='course_set', on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return "<%s - %s by %s>" % (self.id, self.name, self.teacher)
     # as_student_set
     # course_schedule_set
     # exchange_record_set
@@ -125,12 +140,18 @@ class Classroom(models.Model):
     id = models.CharField(max_length=16, primary_key=True, unique=True)
     name = models.CharField(max_length=16, unique=True)
     size = models.IntegerField()
+
+    def __str__(self):
+        return "<%s - %s>" % (self.id, self.name)
     # course_schedule_set
 
 
 class ClassroomManage(models.Model):
     id = models.OneToOneField(Classroom, related_name='classroom_manage', primary_key=True)
     password = models.CharField(max_length=255, null=True, blank=True, unique=True)
+
+    def __str__(self):
+        return "%s" % (self.id,)
     # classroom_record_set
 
 
@@ -138,8 +159,8 @@ class ClassroomManage(models.Model):
 class CourseSchedule(models.Model):
     year = models.IntegerField()
     term = models.IntegerField()
-    weeks = models.CharField(max_length=255)
-    weekday = models.CharField(max_length=255)
+    weeks = models.CharField(max_length=255)  # 周数
+    weekday = models.CharField(max_length=255)  # 星期几
     course_number = models.CharField(max_length=255)
     classroom = models.ForeignKey(Classroom, related_name='course_schedule_set', on_delete=models.SET_NULL, null=True)
     course = models.ForeignKey(Course, related_name='course_schedule_set', on_delete=models.CASCADE)
@@ -147,10 +168,7 @@ class CourseSchedule(models.Model):
 
 # 学生出勤记录
 class AttendanceRecord(models.Model):
-    year = models.IntegerField()
-    term = models.IntegerField()
-    weeks = models.IntegerField()
-    weekday = models.IntegerField()
+    date = models.DateField(default='1970-01-01')
     course_number = models.CharField(max_length=255)
     status = models.CharField(choices=ATTENDANCE_STATUS, max_length=12)
     student = models.ForeignKey(AsStudent, related_name='attendance_record_set', on_delete=models.CASCADE)
@@ -176,13 +194,9 @@ class ClassroomRecord(models.Model):
 
 # 调课记录
 class ExchangeRecord(models.Model):
-    year = models.IntegerField()
-    term = models.IntegerField()
-    from_week = models.CharField(max_length=255)
-    from_weekday = models.CharField(max_length=255)
+    from_date = models.DateField(default='1970-01-01')
     from_course_number = models.CharField(max_length=255)
-    goal_week = models.CharField(max_length=255)
-    goal_weekday = models.CharField(max_length=255)
+    goal_date = models.DateField(default='1970-01-01')
     goal_course_number = models.CharField(max_length=255)
     note = models.TextField(max_length=200, null=True, blank=True)
     approved = models.CharField(choices=APPROVE_STATUS, max_length=10)
@@ -193,7 +207,11 @@ class ExchangeRecord(models.Model):
 class SystemSchedule(models.Model):
     begin = models.DateField()
     end = models.DateField()
-    course_number = models.IntegerField()
+    # course_number = models.IntegerField()  # 每天的课程数量
+    # item
+
+    def __str__(self):
+        return "<System Schedule %s to %s>" % (self.begin, self.end)
 
 
 # 系统时间表子表-课时时间
@@ -201,4 +219,7 @@ class SystemScheduleItem(models.Model):
     begin = models.TimeField()
     end = models.TimeField()
     no = models.IntegerField()
-    system_schedule = models.ForeignKey(SystemSchedule, related_name='item', on_delete=models.CASCADE)
+    system_schedule = models.ForeignKey(SystemSchedule, related_name='items', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "<Item No.%s %s to %s>" % (self.no, self.begin, self.end)

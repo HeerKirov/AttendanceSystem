@@ -117,9 +117,13 @@ def belong_to(obj, goal):
     """
     if type(obj) == type(goal) and obj == goal:
         return True
-    goal_auth = goal.authority.auth  # 预先获得目标的权限数字，以备使用
+    goal_auth = 0
+    if hasattr(goal, 'authority'):
+        goal_auth = goal.authority.auth  # 预先获得目标的权限数字，以备使用
     goal_is_office = has_auth(goal_auth, AuthorityName.Office)
-    # goal_is_admin = has_auth(goal_auth, AuthorityName.Admin)
+    goal_is_root = has_auth(goal_auth, AuthorityName.Root)
+    if goal_is_root:
+        return True
 
     if isinstance(obj, models.User):  # 源是用户，那么获取权限判断可能的上属。
         auth_number = obj.authority.auth
