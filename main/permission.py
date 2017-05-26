@@ -61,56 +61,70 @@ class UserAuthorityPermission(BasePermission):
 
 
 class Action:
-    class AuthorityPermision(UserAuthorityPermission):
+    class AuthorityPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (AuthorityName.Root,),
             'PUT': (AuthorityName.Root,),
+        }
+
+    class PasswordAdminPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.UserManager, AuthorityName.Root),
+            'PUT': (AuthorityName.UserManager, AuthorityName.Root)
         }
 
 
 class User:
     class UserPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.UserManager, AuthorityName.Root)
+            'GET': (AuthorityName.UserManager, AuthorityName.Root),
+            'POST': (AuthorityName.UserManager, AuthorityName.Root)
         }
 
     class UserDetailPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.UserManager, AuthorityName.Root),
-            'PUT': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.UserManager, AuthorityName.Root)
+            'PUT': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.UserManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.UserManager, AuthorityName.Root)
         }
 
     class StudentPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.StudentManager, AuthorityName.Root)
+            'GET': (AuthorityName.StudentManager, AuthorityName.Root),
+            'POST': (AuthorityName.StudentManager, AuthorityName.Root)
         }
 
     class StudentDetailPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.StudentManager, AuthorityName.Root),
-            'PUT': (AuthorityName.StudentManager, AuthorityName.Root)
+            'PUT': (AuthorityName.StudentManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.StudentManager, AuthorityName.Root)
         }
 
     class TeacherPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.TeacherManager, AuthorityName.Root)
+            'GET': (AuthorityName.TeacherManager, AuthorityName.Root),
+            'POST': (AuthorityName.TeacherManager, AuthorityName.Root)
         }
 
     class TeacherDetailPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.TeacherManager, AuthorityName.Root),
-            'PUT': (AuthorityName.TeacherManager, AuthorityName.Root)
+            'PUT': (AuthorityName.TeacherManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.TeacherManager, AuthorityName.Root)
         }
 
     class InstructorPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.InstructorManager, AuthorityName.Root)
+            'GET': (AuthorityName.InstructorManager, AuthorityName.Root),
+            'POST': (AuthorityName.InstructorManager, AuthorityName.Root)
         }
 
     class InstructorDetailPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.InstructorManager, AuthorityName.Root),
-            'PUT': (AuthorityName.InstructorManager, AuthorityName.Root)
+            'PUT': (AuthorityName.InstructorManager, AuthorityName.Root),
+            'DELETE': (AuthorityName.InstructorManager, AuthorityName.Root)
         }
 
 
@@ -265,12 +279,6 @@ class Schedule:
             'POST': (AuthorityName.Admin, AuthorityName.Root)
         }
 
-    class SystemScheduleItemDetailPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AllAuthorityName.All, AuthorityName.Root),
-            'PUT': (AuthorityName.Admin, AuthorityName.Root),
-            'DELETE': (AuthorityName.Admin, AuthorityName.Root)
-        }
 
 
 

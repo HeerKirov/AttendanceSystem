@@ -1,8 +1,16 @@
 from . import models
 from rest_framework import serializers
-from . import authority, utils
+from . import authority, utils, users
 import time
 from django.contrib.auth.models import User as defaultUser
+from django.contrib.auth import authenticate
+
+AuthorityChoice = [  # 用于User列表的可选权限列表
+    ('Student', '学生权限'),
+    ('Teacher', '教师权限'),
+    ('Instructor', '辅导员权限'),
+    ('Office', '教务处权限'),
+]
 
 
 class AuthoritySerializer(serializers.ModelSerializer):
@@ -13,7 +21,71 @@ class AuthoritySerializer(serializers.ModelSerializer):
         fields = ('id', 'auth')
 
 
+class PasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(max_length=255, write_only=True)
+    new_password = serializers.CharField(max_length=255, write_only=True)
+
+    def update(self, instance, validated_data):
+        user = authenticate(username=instance.username, password = validated_data['old_password'])
+        if user is not None:
+            user.set_password(validated_data['new_password'])
+            user.save()
+            return user
+        else:
+            raise serializers.ValidationError('Invalid check data.')
+
+    class Meta:
+        model = defaultUser
+        fields = ('old_password', 'new_password')
+
+
+class PasswordAdminSerializer(serializers.ModelSerializer):
+    new_password = serializers.CharField(max_length=255, write_only=True)
+
+    def update(self, instance, validated_data):
+        instance.set_password(validated_data['new_password'])
+        instance.save()
+        return instance
+
+    class Meta:
+        model = defaultUser
+        fields = ('new_password',)
+
+
 class UserSerializer(serializers.ModelSerializer):
+    id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    username = serializers.CharField(max_length=30, write_only=True)
+    password = serializers.CharField(max_length=255, write_only=True)
+    authority = serializers.MultipleChoiceField(write_only=True, choices=AuthorityChoice)
+
+    def create(self, validated_data):
+        # 创建用户时，需要附加创建其关联模型。
+        # 检查username查重。
+        usernames = defaultUser.objects.filter(username=validated_data['username']).all()
+        if len(usernames) > 0:
+            raise serializers.ValidationError('Username is already exists!')
+        # 需要检查创建的权限列表。
+        for auth in validated_data['authority']:
+            flag = False
+            for item in AuthorityChoice:
+                if auth == item[0]:
+                    flag = True
+                    break
+            if not flag:
+                raise serializers.ValidationError('You permitted a invalid authority.')
+
+        return users.add_user(user_id=validated_data['username'],
+                              name=validated_data['name'],
+                              gender=validated_data['gender'],
+                              password=validated_data['password'],
+                              default_auth=validated_data['authority'])
+
+    class Meta:
+        model = models.User
+        fields = ('id', 'username', 'password', 'name', 'gender', 'authority', 'register_time', 'last_login_time',)
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
 
     class Meta:
@@ -23,17 +95,78 @@ class UserSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    classs = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all())
+    username = serializers.CharField(max_length=30, write_only=True)
+    password = serializers.CharField(max_length=255, write_only=True)
+    name = serializers.CharField(max_length=16, write_only=True)
+    gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
+    classs = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), allow_null=True)
+    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+    user = serializers.SlugRelatedField(slug_field='name', read_only=True)
+
+    def create(self, validated_data):
+        # 创建学生用户时，需要附加创建其关联模型。
+        # 检查username查重。
+        usernames = defaultUser.objects.filter(username=validated_data['username']).all()
+        if len(usernames) > 0:
+            raise serializers.ValidationError('Username is already exists!')
+        profile = users.add_user(user_id=validated_data['username'],
+                                 name=validated_data['name'],
+                                 gender=validated_data['gender'],
+                                 password=validated_data['password'],
+                                 default_auth=['Student'])
+        student = models.AsStudent.objects.filter(username=validated_data['username']).first()
+        student.classs = validated_data['classs']
+        student.course_set = validated_data['course_set']
+        student.save()
+        return student
+
+    class Meta:
+        model = models.AsStudent
+        fields = ('id', 'username', 'password', 'name', 'gender', 'user', 'classs', 'course_set')
+
+
+class StudentDetailSerializer(serializers.ModelSerializer):
+    id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    classs = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), allow_null=True)
     course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     class Meta:
         model = models.AsStudent
         fields = ('id', 'user', 'classs', 'course_set')
-        read_only_fields = ('username',)
 
 
 class TeacherSerializer(serializers.ModelSerializer):
+    id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    user = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    username = serializers.CharField(max_length=30, write_only=True)
+    password = serializers.CharField(max_length=255, write_only=True)
+    name = serializers.CharField(max_length=16, write_only=True)
+    gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
+    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+
+    def create(self, validated_data):
+        # 创建学生用户时，需要附加创建其关联模型。
+        # 检查username查重。
+        usernames = defaultUser.objects.filter(username=validated_data['username']).all()
+        if len(usernames) > 0:
+            raise serializers.ValidationError('Username is already exists!')
+        profile = users.add_user(user_id=validated_data['username'],
+                                 name=validated_data['name'],
+                                 gender=validated_data['gender'],
+                                 password=validated_data['password'],
+                                 default_auth=['Teacher'])
+        teacher = models.AsTeacher.objects.filter(username=validated_data['username']).first()
+        teacher.course_set = validated_data['course_set']
+        teacher.save()
+        return teacher
+
+    class Meta:
+        model = models.AsTeacher
+        fields = ('id', 'user', 'username', 'password', 'name', 'gender', 'course_set')
+
+
+class TeacherDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
     course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
@@ -41,10 +174,39 @@ class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.AsTeacher
         fields = ('id', 'user', 'course_set')
-        read_only_fields = ('username',)
 
 
 class InstructorSerializer(serializers.ModelSerializer):
+    id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    username = serializers.CharField(max_length=30, write_only=True)
+    password = serializers.CharField(max_length=255, write_only=True)
+    name = serializers.CharField(max_length=16, write_only=True)
+    gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
+    classs_set = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), many=True)
+    user = serializers.SlugRelatedField(slug_field='name', read_only=True)
+
+    def create(self, validated_data):
+        # 创建学生用户时，需要附加创建其关联模型。
+        # 检查username查重。
+        usernames = defaultUser.objects.filter(username=validated_data['username']).all()
+        if len(usernames) > 0:
+            raise serializers.ValidationError('Username is already exists!')
+        profile = users.add_user(user_id=validated_data['username'],
+                                 name=validated_data['name'],
+                                 gender=validated_data['gender'],
+                                 password=validated_data['password'],
+                                 default_auth=['Instructor'])
+        instructor = models.AsInstructor.objects.filter(username=validated_data['username']).first()
+        instructor.classs_set = validated_data['classs_set']
+        instructor.save()
+        return instructor
+
+    class Meta:
+        model = models.AsInstructor
+        fields = ('id', 'user', 'username', 'password', 'name', 'gender',  'classs_set')
+
+
+class InstructorDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
     classs_set = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)

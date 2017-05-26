@@ -3,8 +3,9 @@ from . import models
 from . import serializer
 from . import utils
 from rest_framework import mixins, generics
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from . import permission as permissions
+from rest_framework.response import Response
 from rest_framework.filters import DjangoFilterBackend, OrderingFilter, SearchFilter
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -33,7 +34,7 @@ def index(request):
             else:
                 return HttpResponse(r'This user is not active.', status=401)
         else:
-            return HttpResponse(r'Valid login data.', status=401)
+            return HttpResponse(r'Invalid login data.', status=401)
 
 
 def auth(request, pk):  # 这个是获得/修改权限所使用的API视图。已经弃用。
@@ -94,36 +95,55 @@ def timetable_schedule(request):
         return HttpResponse('Method Not Allowed', status=405)
 
 
-class AuthAPIView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class AuthAPIView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):  # 现用的权限API
     queryset = models.Authority.objects.all()
     serializer_class = serializer.AuthoritySerializer
-    permission_classes = (permissions.Action.AuthorityPermision,)
+    permission_classes = (permissions.Action.AuthorityPermission,)
     lookup_field = 'id__username'
 
 
-class UserViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class PasswordAPIView(mixins.UpdateModelMixin, viewsets.GenericViewSet):  # 修改密码的API
+    queryset = defaultUser.objects.all()
+    serializer_class = serializer.PasswordSerializer
+    lookup_field = 'username'
+
+
+class PasswordAdminAPIView(mixins.UpdateModelMixin, viewsets.GenericViewSet):  # 管理员使用的修改密码的API
+    queryset = defaultUser.objects.all()
+    serializer_class = serializer.PasswordAdminSerializer
+    permission_classes = (permissions.Action.PasswordAdminPermission,)
+    lookup_field = 'username'
+
+
+class UserViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = models.User.objects.all()
     serializer_class = serializer.UserSerializer
-    # authentication_classes = (BasicAuthentication,)
-    # authentication_classes = (BasicAuthentication, SessionAuthentication, )
     permission_classes = (permissions.User.UserPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    # filter_fields = ('name', 'gender')
+    filter_fields = ('name', 'gender')
     ordering_fields = ('id', 'name', 'gender')
     search_fields = ('name',)
     lookup_field = 'username'
 
 
-class UserViewDetailSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class UserDetailViewSet(mixins.RetrieveModelMixin,
+                        mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin,
+                        viewsets.GenericViewSet):
     queryset = models.User.objects.all()
-    serializer_class = serializer.UserSerializer
-    # authentication_classes = (BasicAuthentication,)
-    # authentication_classes = (BasicAuthentication, SessionAuthentication,)
+    serializer_class = serializer.UserDetailSerializer
     permission_classes = (permissions.User.UserDetailPermission,)
     lookup_field = 'username'
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = getattr(instance, 'id')
+        if user is not None:
+            user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-class StudentViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+
+class StudentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = models.AsStudent.objects.all()
     serializer_class = serializer.StudentSerializer
     permission_classes = (permissions.User.StudentPermission,)
@@ -134,14 +154,24 @@ class StudentViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     lookup_field = 'username'
 
 
-class StudentDetailViewset(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class StudentDetailViewSet(mixins.RetrieveModelMixin,
+                           mixins.UpdateModelMixin,
+                           mixins.DestroyModelMixin,
+                           viewsets.GenericViewSet):
     queryset = models.AsStudent.objects.all()
-    serializer_class = serializer.StudentSerializer
+    serializer_class = serializer.StudentDetailSerializer
     permission_classes = (permissions.User.StudentDetailPermission,)
     lookup_field = 'username'
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = getattr(instance, 'id')
+        if user is not None:
+            user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-class TeacherViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+
+class TeacherViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = models.AsTeacher.objects.all()
     serializer_class = serializer.TeacherSerializer
     permission_classes = (permissions.User.TeacherPermission,)
@@ -152,14 +182,24 @@ class TeacherViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     lookup_field = 'username'
 
 
-class TeacherDetailViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class TeacherDetailViewSet(mixins.RetrieveModelMixin,
+                           mixins.UpdateModelMixin,
+                           mixins.DestroyModelMixin,
+                           viewsets.GenericViewSet):
     queryset = models.AsTeacher.objects.all()
-    serializer_class = serializer.TeacherSerializer
+    serializer_class = serializer.TeacherDetailSerializer
     permission_classes = (permissions.User.TeacherDetailPermission,)
     lookup_field = 'username'
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = getattr(instance, 'id')
+        if user is not None:
+            user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-class InstructorViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+
+class InstructorViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = models.AsInstructor.objects.all()
     serializer_class = serializer.InstructorSerializer
     permission_classes = (permissions.User.InstructorPermission,)
@@ -170,11 +210,21 @@ class InstructorViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     lookup_field = 'username'
 
 
-class InstructorDetailViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class InstructorDetailViewSet(mixins.RetrieveModelMixin,
+                              mixins.UpdateModelMixin,
+                              mixins.DestroyModelMixin,
+                              viewsets.GenericViewSet):
     queryset = models.AsInstructor.objects.all()
-    serializer_class = serializer.InstructorSerializer
+    serializer_class = serializer.InstructorDetailSerializer
     permission_classes = (permissions.User.InstructorDetailPermission,)
     lookup_field = 'username'
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = getattr(instance, 'id')
+        if user is not None:
+            user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ClasssViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -369,7 +419,7 @@ class SystemScheduleViewSet(viewsets.ModelViewSet):
     search_fields = ('id',)
 
 
-class SystemScheduleItemViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class SystemScheduleItemViewSet(viewsets.ModelViewSet):
     queryset = models.SystemScheduleItem.objects.all()
     serializer_class = serializer.SystemScheduleItemSerializer
     permission_classes = (permissions.Schedule.SystemScheduleItemPermission,)
@@ -378,12 +428,4 @@ class SystemScheduleItemViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, 
     ordering_fields = ('id', 'system_schedule')
     search_fields = ('id', 'system_schedule')
 
-
-class SystemScheduleItemDetailViewSet(mixins.RetrieveModelMixin,
-                                      mixins.UpdateModelMixin,
-                                      mixins.DestroyModelMixin,
-                                      viewsets.GenericViewSet):
-    queryset = models.SystemScheduleItem.objects.all()
-    serializer_class = serializer.SystemScheduleItemSerializer
-    permission_classes = (permissions.Schedule.SystemScheduleItemDetailPermission,)
 

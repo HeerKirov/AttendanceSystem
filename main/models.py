@@ -2,14 +2,17 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import User as defaultUser
-from . import authority
 
 GENDER_ENUM = (
     ('MALE', '男'),
     ('FEMALE', '女')
 )
 ATTENDANCE_STATUS = (
-    # todo 待补充完毕
+    ('NONE', '未到'),
+    ('LATE', '迟到'),
+    ('LEAVE', '早退'),
+    ('ABSENT', '缺勤'),
+    ('NORMAL', '正常')
 )
 APPROVE_STATUS = (
     ('approving', '审批中'),
@@ -194,7 +197,7 @@ class LeaveRecord(models.Model):
     student = models.ForeignKey(AsStudent, related_name='leave_record_set', on_delete=models.CASCADE)
 
     def __str__(self):
-        return "<Leave %s to %s : %s>" % (self.time_begin, self.time_end ,self.approved)
+        return "<Leave %s to %s : %s>" % (self.time_begin, self.time_end, self.approved)
 
 
 # 教室使用记录

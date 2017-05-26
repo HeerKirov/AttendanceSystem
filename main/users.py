@@ -34,6 +34,7 @@ def add_user(user_id, name, gender, password, default_auth=None):
     )
     user.save()
     user_auth.save()
+    return user
 
 
 def set_student(user, value=True):
