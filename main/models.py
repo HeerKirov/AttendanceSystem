@@ -32,7 +32,7 @@ AuthUser = get_user_model()
 
 # 使用者用户模型
 class User(models.Model):
-    id = models.OneToOneField(defaultUser, related_name='profile', primary_key=True)
+    id = models.OneToOneField(defaultUser, related_name='profile', primary_key=True, on_delete=models.CASCADE)
     username = models.CharField(unique=True, max_length=30)
     name = models.CharField(max_length=16, null=True, blank=True)
     gender = models.CharField(max_length=6, choices=GENDER_ENUM, null=True, blank=True)
@@ -131,8 +131,11 @@ class Course(models.Model):
 
 
 class CourseManage(models.Model):
-    id = models.OneToOneField(Course, related_name='course_manage', primary_key=True)
+    id = models.OneToOneField(Course, related_name='course_manage', primary_key=True, on_delete=models.CASCADE)
     # attendance_record_set
+
+    def __str__(self):
+        return self.id
 
 
 # 教室
@@ -147,7 +150,7 @@ class Classroom(models.Model):
 
 
 class ClassroomManage(models.Model):
-    id = models.OneToOneField(Classroom, related_name='classroom_manage', primary_key=True)
+    id = models.OneToOneField(Classroom, related_name='classroom_manage', primary_key=True, on_delete=models.CASCADE)
     password = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     def __str__(self):
@@ -165,14 +168,21 @@ class CourseSchedule(models.Model):
     classroom = models.ForeignKey(Classroom, related_name='course_schedule_set', on_delete=models.SET_NULL, null=True)
     course = models.ForeignKey(Course, related_name='course_schedule_set', on_delete=models.CASCADE)
 
+    def __str__(self):
+        return "<%s.%s Week[%s]-[%s] Course[%s] of %s in %s>" % \
+               (self.year, self.term, self.weeks, self.weekday, self.course_number, self.course, self.classroom)
+
 
 # 学生出勤记录
 class AttendanceRecord(models.Model):
     date = models.DateField(default='1970-01-01')
-    course_number = models.CharField(max_length=255)
+    course_number = models.IntegerField()
     status = models.CharField(choices=ATTENDANCE_STATUS, max_length=12)
     student = models.ForeignKey(AsStudent, related_name='attendance_record_set', on_delete=models.CASCADE)
     course_manage = models.ForeignKey(CourseManage, related_name='attendance_record_set', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "<Attendance %s in %s : %s>" % (self.course_number, self.date, self.status)
 
 
 # 学生请假记录
@@ -183,6 +193,9 @@ class LeaveRecord(models.Model):
     approved = models.CharField(max_length=10, choices=APPROVE_STATUS)
     student = models.ForeignKey(AsStudent, related_name='leave_record_set', on_delete=models.CASCADE)
 
+    def __str__(self):
+        return "<Leave %s to %s : %s>" % (self.time_begin, self.time_end ,self.approved)
+
 
 # 教室使用记录
 class ClassroomRecord(models.Model):
@@ -190,6 +203,9 @@ class ClassroomRecord(models.Model):
     time_out = models.DateTimeField(null=True, blank=True)
     student = models.ForeignKey(AsStudent, related_name='classroom_record_set', on_delete=models.CASCADE)
     classroom_manage = models.ForeignKey(ClassroomManage, related_name='classroom_record_set', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "<CR %s to %s of %s>" % (self.time_in, self.time_out, self.classroom_manage)
 
 
 # 调课记录
@@ -201,6 +217,9 @@ class ExchangeRecord(models.Model):
     note = models.TextField(max_length=200, null=True, blank=True)
     approved = models.CharField(choices=APPROVE_STATUS, max_length=10)
     course = models.ForeignKey(Course, related_name='exchange_record_set', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "<Exchange for %s : %s>" % (self.course, self.approved)
 
 
 # 系统时间表

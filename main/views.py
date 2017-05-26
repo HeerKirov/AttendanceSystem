@@ -1,6 +1,7 @@
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from . import models
 from . import serializer
+from . import utils
 from rest_framework import mixins, generics
 from rest_framework import viewsets
 from . import permission as permissions
@@ -35,7 +36,7 @@ def index(request):
             return HttpResponse(r'Valid login data.', status=401)
 
 
-def auth(request, pk):
+def auth(request, pk):  # 这个是获得/修改权限所使用的API视图。已经弃用。
     if not request.user.is_authenticated:
         return HttpResponse('Unauthorized.', status=401)
     auth_model = request.user.authority
@@ -60,14 +61,37 @@ def auth(request, pk):
 def timetable_now(request):
     if request.method == 'GET':
         (now_year, now_month, now_day, now_hour, now_minute, now_second, _, _, _) = time.localtime(time.time())
-        time_str = '%04d-%02d-%02d %02d:%02d:%02d' % (now_year, now_month, now_day, now_hour, now_minute, now_second)
+        time_str = utils.datetime_to_str(now_year, now_month, now_day, now_hour, now_minute, now_second)
         return HttpResponse(time_str, status=200)
     else:
         return HttpResponse('Method Not Allowed', status=405)
 
 
-def timetable_datetable(request):
-    pass
+def timetable_schedule(request):
+    if request.method == 'GET':
+        (now_year, now_month, now_day, now_hour, now_minute, now_second, _, _, _) = time.localtime(time.time())
+        date_now = utils.date_to_str(now_year, now_month, now_day)
+        schedules = models.SystemSchedule.objects.filter(begin__lte=date_now).filter(end__gte=date_now)
+        if schedules:
+            schedule = schedules.first()
+            items = models.SystemScheduleItem.objects.filter(system_schedule=schedule).order_by('no')
+            data = {
+                'begin': utils.date_to_str(schedule.begin.year, schedule.begin.month, schedule.begin.day),
+                'end': utils.date_to_str(schedule.end.year, schedule.end.month, schedule.end.day),
+                'items': [
+                    {
+                        'begin': utils.time_to_str(item.begin.hour, item.begin.minute, item.begin.second),
+                        'end': utils.time_to_str(item.end.hour, item.end.minute, item.end.second),
+                        'no': item.no,
+                    } for item in items
+                ]
+            }
+            json_data = json.dumps(data)
+            return HttpResponse(json_data, status=200)
+        else:
+            return HttpResponse('', status=200)
+    else:
+        return HttpResponse('Method Not Allowed', status=405)
 
 
 class AuthAPIView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
@@ -104,6 +128,7 @@ class StudentViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.StudentSerializer
     permission_classes = (permissions.User.StudentPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('classs', 'course_set')
     ordering_fields = ('id', 'username', 'classs')
     search_fields = ('username',)
     lookup_field = 'username'
@@ -121,6 +146,7 @@ class TeacherViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.TeacherSerializer
     permission_classes = (permissions.User.TeacherPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('course_set',)
     ordering_fields = ('id', 'username',)
     search_fields = ('username',)
     lookup_field = 'username'
@@ -138,6 +164,7 @@ class InstructorViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.InstructorSerializer
     permission_classes = (permissions.User.InstructorPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('classs_set',)
     ordering_fields = ('id', 'username')
     search_fields = ('username',)
     lookup_field = 'username'
@@ -155,8 +182,9 @@ class ClasssViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gen
     serializer_class = serializer.ClasssSerializer
     permission_classes = (permissions.Item.ClasssPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('college', 'major', 'grade', 'number', 'as_instructor_set__username')
     ordering_fields = ('college', 'major', 'grade', 'number')
-    search_fields = ('id', 'college', 'major', 'as_instructor_set__username')
+    search_fields = ('id', 'college', 'major')
     lookup_field = 'pk'
 
 
@@ -171,8 +199,9 @@ class CourseBasicViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewset
     serializer_class = serializer.CourseBasicSerializer
     permission_classes = (permissions.Item.CourseBasicPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    ordering_fields = ('id', 'name', 'teacher__username')
-    search_fields = ('id', 'name', 'teacher__username')
+    filter_fields = ('name', 'teacher__username')
+    ordering_fields = ('id', 'name', 'teacher')
+    search_fields = ('id', 'name', 'teacher')
 
 
 class CourseBasicDetailViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin,
@@ -202,6 +231,7 @@ class ClassroomBasicViewSet(viewsets.ModelViewSet):
     serializer_class = serializer.ClassroomBasicSerializer
     permission_classes = (permissions.Item.ClassroomPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('name', 'size')
     ordering_fields = ('id', 'name', 'size')
     search_fields = ('id', 'name',)
 
@@ -223,6 +253,7 @@ class ExchangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.ExchangeSerializer
     permission_classes = (permissions.Record.ExchangeRecordPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('course',)
     ordering_fields = ('id', 'course', 'approved')
     search_fields = ('id', 'course', 'approved')
 
@@ -250,6 +281,7 @@ class LeaveViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.LeaveSerializer
     permission_classes = (permissions.Record.LeaveRecordPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('student__username',)
     ordering_fields = ('id', 'student', 'approved')
     search_fields = ('id', 'student', 'approved')
 
@@ -277,6 +309,7 @@ class ClassroomRecordViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.ClassroomRecordSerializer
     permission_classes = (permissions.Record.ClassroomRecordPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('student__username', 'classroom_manage')
     ordering_fields = ('id', 'student', 'classroom_manage')
     search_fields = ('id', 'student', 'classroom_manage')
 
@@ -297,6 +330,7 @@ class CourseScheduleViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, view
     serializer_class = serializer.CourseScheduleSerializer
     permission_classes = (permissions.Record.CourseSchedulePermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('classroom', 'course', 'year', 'term')
     ordering_fields = ('id', 'year', 'term', 'classroom', 'course')
     search_fields = ('id', 'year', 'term', 'classroom', 'course')
 
@@ -315,6 +349,7 @@ class AttendanceRecordViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = serializer.AttendanceRecordSerializer
     permission_classes = (permissions.Record.AttendanceRecordPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('student__username', 'course_manage')
     ordering_fields = ('id', 'date', 'status', 'student', 'course_manage')
     search_fields = ('id', 'date', 'status', 'student', 'course_manage')
 
@@ -328,11 +363,27 @@ class AttendanceRecordDetailViewSet(mixins.RetrieveModelMixin, viewsets.GenericV
 class SystemScheduleViewSet(viewsets.ModelViewSet):
     queryset = models.SystemSchedule.objects.all()
     serializer_class = serializer.SystemScheduleSerializer
+    permission_classes = (permissions.Schedule.SystemSchedulePermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
     ordering_fields = ('id',)
     search_fields = ('id',)
 
 
-class SystemScheduleItemViewSet(viewsets.ModelViewSet):
+class SystemScheduleItemViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = models.SystemScheduleItem.objects.all()
     serializer_class = serializer.SystemScheduleItemSerializer
+    permission_classes = (permissions.Schedule.SystemScheduleItemPermission,)
+    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
+    filter_fields = ('system_schedule',)
+    ordering_fields = ('id', 'system_schedule')
+    search_fields = ('id', 'system_schedule')
+
+
+class SystemScheduleItemDetailViewSet(mixins.RetrieveModelMixin,
+                                      mixins.UpdateModelMixin,
+                                      mixins.DestroyModelMixin,
+                                      viewsets.GenericViewSet):
+    queryset = models.SystemScheduleItem.objects.all()
+    serializer_class = serializer.SystemScheduleItemSerializer
+    permission_classes = (permissions.Schedule.SystemScheduleItemDetailPermission,)
+

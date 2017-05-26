@@ -1,6 +1,6 @@
 from . import models
 from rest_framework import serializers
-from . import authority
+from . import authority, utils
 import time
 from django.contrib.auth.models import User as defaultUser
 
@@ -161,6 +161,13 @@ class ExchangeApplySerializer(serializers.ModelSerializer):
 
 class ExchangeApproveSerializer(serializers.ModelSerializer):
 
+    def update(self, instance, validated_data):
+        if validated_data['approved'] == 'approving':
+            raise serializers.ValidationError('You can not make it be approving.')
+        if getattr(instance, 'approved') == 'pass':
+            raise serializers.ValidationError('It is already passed.You can not change it.')
+        return super().update(instance, validated_data)
+
     class Meta:
         model = models.ExchangeRecord
         fields = ('id', 'approved')
@@ -207,6 +214,13 @@ class LeaveApplySerializer(serializers.ModelSerializer):
 
 
 class LeaveApproveSerializer(serializers.ModelSerializer):
+
+    def update(self, instance, validated_data):
+        if validated_data['approved'] == 'approving':
+            raise serializers.ValidationError('You can not make it be approving.')
+        if getattr(instance, 'approved') == 'pass':
+            raise serializers.ValidationError('It is already passed.You can not change it.')
+        return super().update(instance, validated_data)
 
     class Meta:
         model = models.LeaveRecord
@@ -289,6 +303,19 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
 class SystemScheduleSerializer(serializers.ModelSerializer):
     items = serializers.PrimaryKeyRelatedField(queryset=models.SystemScheduleItem.objects.all(), many=True)
 
+    def validate(self, attrs):
+        if attrs['begin'] > attrs['end']:
+            raise serializers.ValidationError('begin time must be smaller than end time.')
+        # 需要对时间的重叠进行验证。
+        if self.instance is not None:
+            schedules = models.SystemSchedule.objects.exclude(id=self.instance.id)
+        else:
+            schedules = models.SystemSchedule.objects.all()
+        for schedule in schedules:
+            if utils.check_crossing(attrs['begin'], attrs['end'], schedule.begin, schedule.end):
+                raise serializers.ValidationError('Time part of system schedule must be unique.')
+        return attrs
+
     class Meta:
         model = models.SystemSchedule
         fields = ('id', 'begin', 'end', 'items')
@@ -296,6 +323,22 @@ class SystemScheduleSerializer(serializers.ModelSerializer):
 
 class SystemScheduleItemSerializer(serializers.ModelSerializer):
     system_schedule = serializers.PrimaryKeyRelatedField(queryset=models.SystemSchedule.objects.all())
+
+    def validate(self, attrs):
+        if attrs['begin'] > attrs['end']:
+            raise serializers.ValidationError('begin time must be smaller than end time.')
+        # 需要对时间表中每一块的时间重叠进行验证
+        if self.instance is not None:
+            items = models.SystemScheduleItem.objects.exclude(id=self.instance.id).\
+                filter(system_schedule=self.instance.system_schedule)
+        else:
+            items = models.SystemScheduleItem.objects.filter(system_schedule=attrs['system_schedule'])
+        for item in items:
+            if utils.check_crossing(attrs['begin'], attrs['end'], item.begin, item.end):
+                raise serializers.ValidationError('Time part of item in one system schedule must be unique.')
+            elif attrs['no'] == item.no:
+                raise serializers.ValidationError('Number of item must be unique.')
+        return attrs
 
     class Meta:
         model = models.SystemScheduleItem

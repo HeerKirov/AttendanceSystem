@@ -56,11 +56,13 @@ r.register(r'record/attendance-record', views.AttendanceRecordViewSet)
 r.register(r'record/attendance-record', views.AttendanceRecordDetailViewSet)
 r.register(r'schedule/system-schedule', views.SystemScheduleViewSet)
 r.register(r'schedule/system-schedule-item', views.SystemScheduleItemViewSet)
+r.register(r'schedule/system-schedule-item', views.SystemScheduleItemDetailViewSet)
 
 urlpatterns = [
     url(r'^', include(r.urls)),
 ]
 
 urlpatterns_action = [
-    url(r'^now', views.timetable_now)
+    url(r'^now', views.timetable_now),
+    url(r'^schedule', views.timetable_schedule)
 ]

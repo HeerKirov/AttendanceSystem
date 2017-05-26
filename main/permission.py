@@ -250,4 +250,27 @@ class Record:
         }
 
 
+class Schedule:
+    class SystemSchedulePermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Admin, AuthorityName.Root),
+            'POST': (AuthorityName.Admin, AuthorityName.Root),
+            'PUT': (AuthorityName.Admin, AuthorityName.Root),
+            'DELETE': (AuthorityName.Admin, AuthorityName.Root)
+        }
+
+    class SystemScheduleItemPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AuthorityName.Admin, AuthorityName.Root),
+            'POST': (AuthorityName.Admin, AuthorityName.Root)
+        }
+
+    class SystemScheduleItemDetailPermission(UserAuthorityPermission):
+        auth_number = {
+            'GET': (AllAuthorityName.All, AuthorityName.Root),
+            'PUT': (AuthorityName.Admin, AuthorityName.Root),
+            'DELETE': (AuthorityName.Admin, AuthorityName.Root)
+        }
+
+
 
