@@ -40,6 +40,7 @@ r.register(r'courses/basic', views.CourseBasicDetailViewSet)
 r.register(r'courses/manage', views.CourseManageViewSet)
 r.register(r'courses/manage', views.CourseManageDetailViewSet)
 r.register(r'classrooms/basic', views.ClassroomBasicViewSet)
+r.register(r'classrooms/basic', views.ClassroomBasicDetailViewSet)
 r.register(r'classrooms/manage', views.ClassroomManageBasicViewSet)
 r.register(r'exchange/exchanges', views.ExchangeViewSet)
 r.register(r'exchange/exchanges', views.ExchangeDetailViewSet)
@@ -64,6 +65,7 @@ urlpatterns = [
 ]
 
 urlpatterns_action = [
+    url(r'self-authority', views.self_authority),
     url(r'^now', views.timetable_now),
     url(r'^schedule', views.timetable_schedule)
 ]

@@ -117,7 +117,7 @@ class Classs(models.Model):
     # as_student_set
 
     def __str__(self):
-        return "%s-%s-%s.%s" % (self.college, self.major, self.grade, self.number)
+        return "<%s-%s-%s.%s>" % (self.college, self.major, self.grade, self.number)
 
 
 # 课程

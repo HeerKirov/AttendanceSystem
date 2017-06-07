@@ -13,10 +13,27 @@ from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from .authority import has_auth, AuthorityName, all_auth, add_auth, belong_to
 from django.contrib.auth.models import User as defaultUser
+import base64
 import json
 import time
 
 # Create your views here.
+
+
+def http_basic_auth(request):
+    if request.user.is_authenticated():
+        return True
+    if 'HTTP_AUTHORIZATION' in request.META:
+        auth = request.META['HTTP_AUTHORIZATION'].split()
+        if len(auth) == 2 and auth[0].lower() == "basic":
+            ss = base64.b64decode(auth[1])
+            ssr = ss.split(b':')
+            username, password = ssr[0], ssr[1]
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                request.user = user
+                return True
+    return False
 
 
 @csrf_exempt
@@ -35,28 +52,6 @@ def index(request):
                 return HttpResponse(r'This user is not active.', status=401)
         else:
             return HttpResponse(r'Invalid login data.', status=401)
-
-
-def auth(request, pk):  # 这个是获得/修改权限所使用的API视图。已经弃用。
-    if not request.user.is_authenticated:
-        return HttpResponse('Unauthorized.', status=401)
-    auth_model = request.user.authority
-    if not has_auth(auth_model.auth, AuthorityName.Root):
-        return HttpResponse('Permission Denied.', status=403)
-    users = defaultUser.objects.filter(username=pk).first()
-    if users is None:
-        return HttpResponse('User is not exists.', status=404)
-    if request.method == 'GET':
-        auth_set = all_auth(auth_model.auth)
-        return HttpResponse(json.dumps(auth_set))
-    elif request.method == 'POST':
-        auth_set = json.loads(request.body)
-        auth_number = 0
-        add_auth(auth_number, auth_set)
-        auth_model.auth = auth_number
-        auth_model.save()
-    else:
-        return HttpResponse('Method Not Allowed', status=405)
 
 
 def timetable_now(request):
@@ -91,6 +86,20 @@ def timetable_schedule(request):
             return HttpResponse(json_data, status=200)
         else:
             return HttpResponse('', status=200)
+    else:
+        return HttpResponse('Method Not Allowed', status=405)
+
+
+def self_authority(request):
+    if not http_basic_auth(request):
+        return HttpResponse('Unauthorized.', status=401)
+    if request.method == 'GET':
+        authority = models.Authority.objects.filter(id=request.user).first()
+        auth_number = authority.auth
+        data = {
+            'auth': auth_number
+        }
+        return HttpResponse(json.dumps(data), status=200)
     else:
         return HttpResponse('Method Not Allowed', status=405)
 
@@ -276,7 +285,7 @@ class CourseManageDetailViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewS
     permission_classes = (permissions.Item.CourseManageDetailPermission,)
 
 
-class ClassroomBasicViewSet(viewsets.ModelViewSet):
+class ClassroomBasicViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = models.Classroom.objects.all()
     serializer_class = serializer.ClassroomBasicSerializer
     permission_classes = (permissions.Item.ClassroomPermission,)
@@ -284,6 +293,15 @@ class ClassroomBasicViewSet(viewsets.ModelViewSet):
     filter_fields = ('name', 'size')
     ordering_fields = ('id', 'name', 'size')
     search_fields = ('id', 'name',)
+
+
+class ClassroomBasicDetailViewSet(mixins.RetrieveModelMixin,
+                                  mixins.UpdateModelMixin,
+                                  mixins.DestroyModelMixin,
+                                  viewsets.GenericViewSet):
+    queryset = models.Classroom.objects.all()
+    serializer_class = serializer.ClassroomBasicDetailSerializer
+    permission_classes = (permissions.Item.ClassroomPermission,)
 
 
 class ClassroomManageBasicViewSet(mixins.ListModelMixin,

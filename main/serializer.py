@@ -99,8 +99,8 @@ class StudentSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=255, write_only=True)
     name = serializers.CharField(max_length=16, write_only=True)
     gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
-    classs = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), allow_null=True)
-    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+    classs = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True)
+    course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     def create(self, validated_data):
@@ -115,9 +115,6 @@ class StudentSerializer(serializers.ModelSerializer):
                                  password=validated_data['password'],
                                  default_auth=['Student'])
         student = models.AsStudent.objects.filter(username=validated_data['username']).first()
-        student.classs = validated_data['classs']
-        student.course_set = validated_data['course_set']
-        student.save()
         return student
 
     class Meta:
@@ -127,8 +124,8 @@ class StudentSerializer(serializers.ModelSerializer):
 
 class StudentDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    classs = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), allow_null=True)
-    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+    classs = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True)
+    course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     class Meta:
@@ -143,7 +140,7 @@ class TeacherSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=255, write_only=True)
     name = serializers.CharField(max_length=16, write_only=True)
     gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
-    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+    course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
 
     def create(self, validated_data):
         # 创建学生用户时，需要附加创建其关联模型。
@@ -157,7 +154,6 @@ class TeacherSerializer(serializers.ModelSerializer):
                                  password=validated_data['password'],
                                  default_auth=['Teacher'])
         teacher = models.AsTeacher.objects.filter(username=validated_data['username']).first()
-        teacher.course_set = validated_data['course_set']
         teacher.save()
         return teacher
 
@@ -169,7 +165,7 @@ class TeacherSerializer(serializers.ModelSerializer):
 class TeacherDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
-    course_set = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all(), many=True)
+    course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
 
     class Meta:
         model = models.AsTeacher
@@ -182,7 +178,7 @@ class InstructorSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=255, write_only=True)
     name = serializers.CharField(max_length=16, write_only=True)
     gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
-    classs_set = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), many=True)
+    classs_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     def create(self, validated_data):
@@ -197,7 +193,6 @@ class InstructorSerializer(serializers.ModelSerializer):
                                  password=validated_data['password'],
                                  default_auth=['Instructor'])
         instructor = models.AsInstructor.objects.filter(username=validated_data['username']).first()
-        instructor.classs_set = validated_data['classs_set']
         instructor.save()
         return instructor
 
@@ -208,7 +203,7 @@ class InstructorSerializer(serializers.ModelSerializer):
 
 class InstructorDetailSerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
-    classs_set = serializers.PrimaryKeyRelatedField(queryset=models.Classs.objects.all(), many=True)
+    classs_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
     class Meta:
@@ -235,7 +230,7 @@ class CourseBasicSerializer(serializers.ModelSerializer):
     course_schedule_set = serializers.PrimaryKeyRelatedField(
         queryset=models.CourseSchedule.objects.all(), many=True)
     exchange_record_set = serializers.PrimaryKeyRelatedField(
-        queryset=models.ExchangeRecord.objects.all(), many=True)
+        read_only=True, many=True)
 
     def create(self, validated_data):
         # 需要在创建对象时同时创建管理信息。
@@ -278,6 +273,13 @@ class ClassroomBasicSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Classroom
         fields = ('id', 'name', 'size', 'password')
+
+
+class ClassroomBasicDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Classroom
+        fields = ('id', 'name', 'size')
 
 
 class ClassroomManageSerializer(serializers.ModelSerializer):
@@ -356,7 +358,7 @@ class LeaveApplySerializer(serializers.ModelSerializer):
         if student is None:
             raise serializers.ValidationError('Student is not exists.')
 
-        # 下面进行权限判别。要求：user是教务处，或者user是学生并且是本人。
+        # 下面进行权限判别。要求：user是教务处/ROOT，或者user是学生并且是本人。
         if authority.has_auth(auth_number, authority.AuthorityName.Office) \
                 or authority.has_auth(auth_number, authority.AuthorityName.Root):
             validated_data['approved'] = 'approving'
@@ -378,11 +380,22 @@ class LeaveApplySerializer(serializers.ModelSerializer):
 class LeaveApproveSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
-        if validated_data['approved'] == 'approving':
-            raise serializers.ValidationError('You can not make it be approving.')
-        if getattr(instance, 'approved') == 'pass':
-            raise serializers.ValidationError('It is already passed.You can not change it.')
-        return super().update(instance, validated_data)
+        # 需要封锁对教师的权限。要求审批者只能是教务处/辅导员/ROOT。
+        user = self.context['request'].user
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError('Unauthorized.')
+        profile = user.profile  # 使用者的profile
+        auth_number = getattr(profile, 'authority').auth  # 获得使用者账户的权限数字
+        if authority.has_auth(auth_number, authority.AuthorityName.Teacher) \
+                or authority.has_auth(auth_number, authority.AuthorityName.Office) \
+                or authority.has_auth(auth_number, authority.AuthorityName.Root):
+            if validated_data['approved'] == 'approving':
+                raise serializers.ValidationError('You can not make it be approving.')
+            if getattr(instance, 'approved') == 'pass':
+                raise serializers.ValidationError('It is already passed.You can not change it.')
+            return super().update(instance, validated_data)
+        else:
+            raise serializers.ValidationError('Permission Denied.')
 
     class Meta:
         model = models.LeaveRecord
