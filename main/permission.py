@@ -17,7 +17,7 @@ class UserAuthorityPermission(BasePermission):
             return False
         number = authority.auth  # 获取权限数字
         for method, permissions in self.auth_number.items():  # 查找目标类型
-            if permissions is not None and request.method == method:
+            if permissions is not None and ((method == 'PUT' and request.method == 'PATCH') or request.method == method):
                 for item in permissions:  # 遍历目标类型的许可,这里的item是目标权限字符串
                     # 这个for之内不允许返回False。
                     if item in auth_check.ALL_AUTHORITY:  # 全权限系列
@@ -39,7 +39,7 @@ class UserAuthorityPermission(BasePermission):
             return False
         number = authority.auth  # 获取权限数字
         for method, permissions in self.auth_number.items():  # 查找目标类型
-            if permissions is not None and request.method == method:
+            if permissions is not None and ((method == 'PUT' and request.method == 'PATCH') or request.method == method):
                 for item in permissions:  # 遍历目标类型的许可,这里的item是目标权限字符串
                     # 修复错误：在这个for循环之内不能returnFalse！否则会打破Or联结。
                     if item in auth_check.ALL_AUTHORITY:
@@ -85,7 +85,7 @@ class User:
         auth_number = {
             'GET': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.UserManager, AuthorityName.Root),
             'PUT': (BelongName.IsSelf, BelongName.IsParent, AuthorityName.UserManager, AuthorityName.Root),
-            'DELETE': (AuthorityName.UserManager, AuthorityName.Root)
+            'DELETE': (AuthorityName.UserManager, AuthorityName.Root),
         }
 
     class StudentPermission(UserAuthorityPermission):

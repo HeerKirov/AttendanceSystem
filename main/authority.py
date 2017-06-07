@@ -108,6 +108,40 @@ def add_auth(authority, args):
     return authority
 
 
+def get_profile(user):
+    """
+    获取目标model的Profile模型。
+    :param user: 目标model
+    :return: 
+    """
+    if isinstance(user, models.defaultUser):
+        return getattr(user, 'profile')
+    if isinstance(user, models.AsStudent):
+        return user.user
+    elif isinstance(user, models.AsTeacher):
+        return user.user
+    elif isinstance(user, models.AsInstructor):
+        return user.user
+    elif isinstance(user, models.Authority):
+        return user.user
+    elif isinstance(user, models.CourseManage):
+        return user.id
+    elif isinstance(user, models.ClassroomManage):
+        return user.id
+    elif isinstance(user, models.CourseSchedule):
+        return user.course
+    elif isinstance(user, models.AttendanceRecord):
+        return user.student
+    elif isinstance(user, models.LeaveRecord):
+        return user.student
+    elif isinstance(user, models.ClassroomRecord):
+        return user.classroom_manage.id
+    elif isinstance(user, models.ExchangeRecord):
+        return user.course
+    else:
+        return user
+
+
 def belong_to(obj, goal):
     """
     进行泛判断，goal是否是obj的上属、拥有者或者是其本身。
@@ -115,6 +149,8 @@ def belong_to(obj, goal):
     :param goal: 要判断的上属目标
     :return: 返回一个布尔值
     """
+    obj = get_profile(obj)
+    goal = get_profile(goal)
     if type(obj) == type(goal) and obj == goal:
         return True
     goal_auth = 0
@@ -168,22 +204,22 @@ def belong_to(obj, goal):
         course_teacher = obj.teacher  # 已修正bug：需要注意的是，在现有模型中课程只有一位教师。
         if belong_to(course_teacher, goal):
             return False
-    elif isinstance(obj, models.CourseManage):  # 源是课程管理信息。
-        return belong_to(obj.id, goal)
+    # elif isinstance(obj, models.CourseManage):  # 源是课程管理信息。
+    #     return belong_to(obj.id, goal)
     elif isinstance(obj, models.Classroom):  # 源是教室。
         return False  # 教室不参与这个从属级别图。
-    elif isinstance(obj, models.ClassroomManage):
-        return False
-    elif isinstance(obj, models.AttendanceRecord):  # 出勤记录
-        return belong_to(obj.student, goal)
-    elif isinstance(obj, models.LeaveRecord):  # 请假记录
-        return belong_to(obj.student, goal)
-    elif isinstance(obj, models.ClassroomRecord):  # 教室使用记录
-        return belong_to(obj.student, goal)
-    elif isinstance(obj, models.ExchangeRecord):  # 调课记录
-        return belong_to(obj.course, goal)
-    elif isinstance(obj, models.CourseSchedule):  # 上课时间安排
-        return belong_to(obj.course, goal)
+    # elif isinstance(obj, models.ClassroomManage):
+    #     return False
+    # elif isinstance(obj, models.AttendanceRecord):  # 出勤记录
+    #     return belong_to(obj.student, goal)
+    # elif isinstance(obj, models.LeaveRecord):  # 请假记录
+    #     return belong_to(obj.student, goal)
+    # elif isinstance(obj, models.ClassroomRecord):  # 教室使用记录
+    #     return belong_to(obj.student, goal)
+    # elif isinstance(obj, models.ExchangeRecord):  # 调课记录
+    #     return belong_to(obj.course, goal)
+    # elif isinstance(obj, models.CourseSchedule):  # 上课时间安排
+    #     return belong_to(obj.course, goal)
     return False
 
 
@@ -194,22 +230,24 @@ def belong_to_side(obj, goal):
     :param goal: 判断目标
     :return: 返回一个布尔值。
     """
+    obj = get_profile(obj)
+    goal = get_profile(goal)
     if type(obj) == type(goal) and obj == goal:
         return True
-    goal_auth = goal.authority.auth  # 预先获得目标的权限数字，以备使用
-    goal_is_office = has_auth(goal_auth, AuthorityName.Office)
-
-    if isinstance(obj, models.AttendanceRecord):  # 出勤记录
-        return belong_to_side(obj.student, goal)
-    elif isinstance(obj, models.LeaveRecord):  # 请假记录
-        return belong_to_side(obj.student, goal)
-    elif isinstance(obj, models.ClassroomRecord):  # 教室使用记录
-        return belong_to_side(obj.student, goal)
-    elif isinstance(obj, models.ExchangeRecord):  # 调课记录
-        return belong_to_side(obj.course, goal)
-    elif isinstance(obj, models.CourseSchedule):  # 上课时间安排
-        return belong_to_side(obj.course, goal)
-    else:
-        return False
+    # goal_auth = goal.authority.auth  # 预先获得目标的权限数字，以备使用
+    # goal_is_office = has_auth(goal_auth, AuthorityName.Office)
+    return False
+    # if isinstance(obj, models.AttendanceRecord):  # 出勤记录
+    #     return belong_to_side(obj.student, goal)
+    # elif isinstance(obj, models.LeaveRecord):  # 请假记录
+    #     return belong_to_side(obj.student, goal)
+    # elif isinstance(obj, models.ClassroomRecord):  # 教室使用记录
+    #     return belong_to_side(obj.student, goal)
+    # elif isinstance(obj, models.ExchangeRecord):  # 调课记录
+    #     return belong_to_side(obj.course, goal)
+    # elif isinstance(obj, models.CourseSchedule):  # 上课时间安排
+    #     return belong_to_side(obj.course, goal)
+    # else:
+    #     return False
 
 update_authority()
