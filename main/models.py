@@ -65,6 +65,11 @@ class AsStudent(models.Model):
     classs = models.ForeignKey('Classs', related_name='as_student_set', on_delete=models.SET_NULL, null=True)
     course_set = models.ManyToManyField('Course', related_name='as_student_set')
 
+    def get_name(self):
+        return self.user.name
+
+    name = property(get_name)
+
     def __str__(self):
         return "%s" % (self.user,)
     # classroom_record_set
@@ -78,6 +83,11 @@ class AsTeacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_teacher')
     username = models.CharField(max_length=30, unique=True)
 
+    def get_name(self):
+        return self.user.name
+
+    name = property(get_name)
+
     def __str__(self):
         return "%s" % (self.user,)
     # course_set
@@ -88,6 +98,11 @@ class AsInstructor(models.Model):
     id = models.OneToOneField(defaultUser, on_delete=models.CASCADE, related_name='as_instructor', primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='as_instructor')
     username = models.CharField(max_length=30, unique=True)
+
+    def get_name(self):
+        return self.user.name
+
+    name = property(get_name)
 
     def __str__(self):
         return "%s" % (self.user,)
@@ -115,6 +130,11 @@ class Classs(models.Model):
     number = models.IntegerField()
     as_instructor_set = models.ManyToManyField(AsInstructor, related_name='classs_set')
     # as_student_set
+
+    def get_name(self):
+        return "%s%s-%s" % (self.major, self.grade, self.number)
+
+    name = property(get_name)
 
     def __str__(self):
         return "<%s-%s-%s.%s>" % (self.college, self.major, self.grade, self.number)
@@ -155,6 +175,11 @@ class Classroom(models.Model):
 class ClassroomManage(models.Model):
     id = models.OneToOneField(Classroom, related_name='classroom_manage', primary_key=True, on_delete=models.CASCADE)
     password = models.CharField(max_length=255, null=True, blank=True, unique=True)
+
+    def get_name(self):
+        return self.id.name
+
+    name = property(get_name)
 
     def __str__(self):
         return "%s" % (self.id,)

@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
-from .authority import has_auth, AuthorityName, all_auth, add_auth, belong_to
+from .authority import has_auth, AuthorityName, all_auth, add_auth, belong_to, belong_to_side
 from django.contrib.auth.models import User as defaultUser
 import base64
 import json
@@ -26,8 +26,7 @@ def http_basic_auth(request):
     if 'HTTP_AUTHORIZATION' in request.META:
         auth = request.META['HTTP_AUTHORIZATION'].split()
         if len(auth) == 2 and auth[0].lower() == "basic":
-            ss = base64.b64decode(auth[1])
-            ssr = ss.split(b':')
+            ssr = base64.b64decode(auth[1]).split(b':')
             username, password = ssr[0], ssr[1]
             user = authenticate(username=username, password=password)
             if user is not None:
@@ -99,6 +98,64 @@ def self_authority(request):
         data = {
             'auth': auth_number
         }
+        return HttpResponse(json.dumps(data), status=200)
+    else:
+        return HttpResponse('Method Not Allowed', status=405)
+
+
+def belong_check(request):
+    if not http_basic_auth(request):
+        return HttpResponse('Unauthorized.', status=401)
+    if request.method == 'GET':
+        profile = request.user.profile
+        auth_number = profile.authority.auth
+        req = request.GET
+        goal = None
+        data = None
+        if req['type'] == 'user':
+            if has_auth(auth_number, AuthorityName.UserManager) or has_auth(auth_number, AuthorityName.Root):
+                data = {'relation': 'manager'}
+            else:
+                goal = models.User.objects.filter(username=req['id']).first()
+                if has_auth(auth_number, AuthorityName.StudentManager) \
+                        and has_auth(goal.authority.auth, AuthorityName.Student):
+                    data = {'relation': 'manager'}
+                elif has_auth(auth_number, AuthorityName.TeacherManager) \
+                        and has_auth(goal.authority.auth, AuthorityName.Teacher):
+                    data = {'relation': 'manager'}
+                elif has_auth(auth_number, AuthorityName.InstructorManager) \
+                        and has_auth(goal.authority.auth, AuthorityName.Instructor):
+                    data = {'relation': 'manager'}
+        elif req['type'] == 'class':
+            if has_auth(auth_number, AuthorityName.ClassManager) or has_auth(auth_number, AuthorityName.Root):
+                data = {'relation': 'manager'}
+            else:
+                goal = models.Classs.objects.filter(id=req['id']).first()
+        elif req['type'] == 'course':
+            if has_auth(auth_number, AuthorityName.CourseManager) or has_auth(auth_number, AuthorityName.Root):
+                data = {'relation': 'manager'}
+            else:
+                goal = models.Course.objects.filter(id=req['id']).first()
+        elif req['type'] == 'classroom':
+            if has_auth(auth_number, AuthorityName.ClassroomManager) or has_auth(auth_number, AuthorityName.Root):
+                data = {'relation': 'manager'}
+            else:
+                goal = models.Classroom.objects.filter(id=req['id']).first()
+        else:
+            return HttpResponse('Type Error.', status=400)
+        if data is None:  # 这表示manager已确认
+            belong_to_side_result = belong_to_side(profile, goal)
+            belong_to_sub = belong_to(profile, goal)  # user是待确认目标的下属
+            belong_to_parent = belong_to(goal, profile)  # user是待确认目标的上属
+            if belong_to_side_result:
+                relation = 'self'
+            elif belong_to_sub:
+                relation = 'sub'
+            elif belong_to_parent:
+                relation = 'parent'
+            else:
+                relation = 'other'
+            data = {'relation': relation}
         return HttpResponse(json.dumps(data), status=200)
     else:
         return HttpResponse('Method Not Allowed', status=405)

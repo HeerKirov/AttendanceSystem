@@ -103,6 +103,10 @@ class StudentSerializer(serializers.ModelSerializer):
     course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    classs_name_related = serializers.SlugRelatedField(slug_field='name', source='classs', read_only=True)
+    course_name_related = serializers.SlugRelatedField(slug_field='name', source='course_set', read_only=True, many=True)
+
     def create(self, validated_data):
         # 创建学生用户时，需要附加创建其关联模型。
         # 检查username查重。
@@ -119,7 +123,8 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.AsStudent
-        fields = ('id', 'username', 'password', 'name', 'gender', 'user', 'classs', 'course_set')
+        fields = ('id', 'username', 'password', 'name', 'gender', 'user', 'classs', 'course_set',
+                  'gender_related', 'classs_name_related', 'course_name_related')
 
 
 class StudentDetailSerializer(serializers.ModelSerializer):
@@ -128,9 +133,15 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    classs_name_related = serializers.SlugRelatedField(slug_field='name', source='classs', read_only=True)
+    course_name_related = serializers.SlugRelatedField(slug_field='name', source='course_set', read_only=True,
+                                                       many=True)
+
     class Meta:
         model = models.AsStudent
-        fields = ('id', 'user', 'classs', 'course_set')
+        fields = ('id', 'user', 'classs', 'course_set',
+                  'gender_related', 'classs_name_related', 'course_name_related')
 
 
 class TeacherSerializer(serializers.ModelSerializer):
@@ -141,6 +152,10 @@ class TeacherSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=16, write_only=True)
     gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
     course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
+
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    course_name_related = serializers.SlugRelatedField(slug_field='name', source='course_set', read_only=True,
+                                                       many=True)
 
     def create(self, validated_data):
         # 创建学生用户时，需要附加创建其关联模型。
@@ -159,7 +174,8 @@ class TeacherSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.AsTeacher
-        fields = ('id', 'user', 'username', 'password', 'name', 'gender', 'course_set')
+        fields = ('id', 'user', 'username', 'password', 'name', 'gender', 'course_set',
+                  'gender_related', 'course_name_related')
 
 
 class TeacherDetailSerializer(serializers.ModelSerializer):
@@ -167,9 +183,14 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
     course_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
 
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    course_name_related = serializers.SlugRelatedField(slug_field='name', source='course_set', read_only=True,
+                                                       many=True)
+
     class Meta:
         model = models.AsTeacher
-        fields = ('id', 'user', 'course_set')
+        fields = ('id', 'user', 'course_set',
+                  'gender_related', 'course_name_related')
 
 
 class InstructorSerializer(serializers.ModelSerializer):
@@ -180,6 +201,10 @@ class InstructorSerializer(serializers.ModelSerializer):
     gender = serializers.ChoiceField(choices=models.GENDER_ENUM, write_only=True, allow_null=True)
     classs_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
+
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    classs_name_related = serializers.SlugRelatedField(slug_field='name', source='classs_set', read_only=True,
+                                                       many=True)
 
     def create(self, validated_data):
         # 创建学生用户时，需要附加创建其关联模型。
@@ -198,7 +223,8 @@ class InstructorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.AsInstructor
-        fields = ('id', 'user', 'username', 'password', 'name', 'gender',  'classs_set')
+        fields = ('id', 'user', 'username', 'password', 'name', 'gender',  'classs_set',
+                  'gender_related', 'classs_name_related')
 
 
 class InstructorDetailSerializer(serializers.ModelSerializer):
@@ -206,9 +232,14 @@ class InstructorDetailSerializer(serializers.ModelSerializer):
     classs_set = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     user = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
+    gender_related = serializers.SlugRelatedField(slug_field='gender', source='user', read_only=True)
+    classs_name_related = serializers.SlugRelatedField(slug_field='name', source='classs_set', read_only=True,
+                                                       many=True)
+
     class Meta:
         model = models.AsInstructor
-        fields = ('id', 'user', 'classs_set')
+        fields = ('id', 'user', 'classs_set',
+                  'gender_related', 'classs_name_related')
         read_only_fields = ('username',)
 
 
@@ -218,9 +249,15 @@ class ClasssSerializer(serializers.ModelSerializer):
     as_instructor_set = serializers.SlugRelatedField(
         slug_field='username', queryset=models.AsInstructor.objects.all(), many=True)
 
+    instructor_name_related = serializers.SlugRelatedField(slug_field='name', source='as_instructor_set',
+                                                           read_only=True, many=True)
+    student_name_related = serializers.SlugRelatedField(slug_field='name', source='as_student_set',
+                                                        read_only=True, many=True)
+
     class Meta:
         model = models.Classs
-        fields = ('id', 'grade', 'college', 'major', 'number', 'as_instructor_set', 'as_student_set')
+        fields = ('id', 'grade', 'college', 'major', 'number', 'as_instructor_set', 'as_student_set',
+                  'instructor_name_related', 'student_name_related')
 
 
 class CourseBasicSerializer(serializers.ModelSerializer):
@@ -232,6 +269,9 @@ class CourseBasicSerializer(serializers.ModelSerializer):
     exchange_record_set = serializers.PrimaryKeyRelatedField(
         read_only=True, many=True)
 
+    student_name_related = serializers.SlugRelatedField(slug_field='name', source='as_student_set',
+                                                        read_only=True, many=True)
+
     def create(self, validated_data):
         # 需要在创建对象时同时创建管理信息。
         ins = super().create(validated_data)
@@ -241,7 +281,8 @@ class CourseBasicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ('id', 'name', 'teacher', 'as_student_set', 'course_schedule_set', 'exchange_record_set')
+        fields = ('id', 'name', 'teacher', 'as_student_set', 'course_schedule_set', 'exchange_record_set',
+                  'student_name_related')
 
 
 class CourseManageSerializer(serializers.ModelSerializer):
@@ -404,10 +445,13 @@ class LeaveApproveSerializer(serializers.ModelSerializer):
 
 class ClassroomRecordSerializer(serializers.ModelSerializer):
     student = serializers.SlugRelatedField(slug_field='username', queryset=models.AsStudent.objects.all())
+    student_name_related = serializers.SlugRelatedField(slug_field='name', source='student', read_only=True)
+    classroom_name_related = serializers.SlugRelatedField(slug_field='name', source='classroom_manage', read_only=True)
 
     class Meta:
         model = models.ClassroomRecord
-        fields = ('id', 'time_in', 'time_out', 'student', 'classroom_manage')
+        fields = ('id', 'time_in', 'time_out', 'student', 'classroom_manage',
+                  'student_name_related', 'classroom_name_related')
 
 
 class ClassroomCheckSerializer(serializers.ModelSerializer):
@@ -460,10 +504,13 @@ class ClassroomCheckSerializer(serializers.ModelSerializer):
 class CourseScheduleSerializer(serializers.ModelSerializer):
     course = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all())
     classroom = serializers.PrimaryKeyRelatedField(queryset=models.Classroom.objects.all())
+    course_name_related = serializers.SlugRelatedField(slug_field='name', source='course', read_only=True)
+    classroom_name_related = serializers.SlugRelatedField(slug_field='name', source='classroom', read_only=True)
 
     class Meta:
         model = models.CourseSchedule
-        fields = ('id', 'year', 'term', 'weeks', 'weekday', 'course_number', 'classroom', 'course')
+        fields = ('id', 'year', 'term', 'weeks', 'weekday', 'course_number', 'classroom', 'course',
+                  'course_name_related', 'classroom_name_related')
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):

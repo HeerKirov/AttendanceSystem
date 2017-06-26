@@ -67,5 +67,6 @@ urlpatterns = [
 urlpatterns_action = [
     url(r'self-authority', views.self_authority),
     url(r'^now', views.timetable_now),
-    url(r'^schedule', views.timetable_schedule)
+    url(r'^schedule', views.timetable_schedule),
+    url(r'belong', views.belong_check),
 ]
