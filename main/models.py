@@ -254,6 +254,8 @@ class ExchangeRecord(models.Model):
 class SystemSchedule(models.Model):
     begin = models.DateField()
     end = models.DateField()
+    year = models.IntegerField(default=1970)
+    term = models.IntegerField(default=1)
     # course_number = models.IntegerField()  # 每天的课程数量
     # item
 

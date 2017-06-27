@@ -276,7 +276,9 @@ class Schedule:
     class SystemScheduleItemPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (AuthorityName.Admin, AuthorityName.Root),
-            'POST': (AuthorityName.Admin, AuthorityName.Root)
+            'POST': (AuthorityName.Admin, AuthorityName.Root),
+            'PUT': (AuthorityName.Admin, AuthorityName.Root),
+            'DELETE': (AuthorityName.Admin, AuthorityName.Root),
         }
 
 

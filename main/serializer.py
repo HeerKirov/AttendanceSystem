@@ -15,10 +15,11 @@ AuthorityChoice = [  # 用于User列表的可选权限列表
 
 class AuthoritySerializer(serializers.ModelSerializer):
     id = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    name = serializers.SlugRelatedField(slug_field='name', source='user', read_only=True)
 
     class Meta:
         model = models.Authority
-        fields = ('id', 'auth')
+        fields = ('id', 'auth', 'name')
 
 
 class PasswordSerializer(serializers.ModelSerializer):
@@ -261,11 +262,9 @@ class ClasssSerializer(serializers.ModelSerializer):
 
 
 class CourseBasicSerializer(serializers.ModelSerializer):
-    teacher = serializers.SlugRelatedField(slug_field='username', queryset=models.AsTeacher.objects.all())
+    teacher = serializers.SlugRelatedField(slug_field='username', queryset=models.AsTeacher.objects.all(), allow_null=True)
     as_student_set = serializers.SlugRelatedField(
-        slug_field='username', queryset=models.AsStudent.objects.all(), many=True)
-    course_schedule_set = serializers.PrimaryKeyRelatedField(
-        queryset=models.CourseSchedule.objects.all(), many=True)
+        slug_field='username', queryset=models.AsStudent.objects.all(), many=True, allow_null=True)
     exchange_record_set = serializers.PrimaryKeyRelatedField(
         read_only=True, many=True)
 
@@ -281,7 +280,7 @@ class CourseBasicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ('id', 'name', 'teacher', 'as_student_set', 'course_schedule_set', 'exchange_record_set',
+        fields = ('id', 'name', 'teacher', 'as_student_set', 'exchange_record_set',
                   'student_name_related')
 
 
@@ -523,24 +522,24 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
 
 
 class SystemScheduleSerializer(serializers.ModelSerializer):
-    items = serializers.PrimaryKeyRelatedField(queryset=models.SystemScheduleItem.objects.all(), many=True)
 
     def validate(self, attrs):
-        if attrs['begin'] > attrs['end']:
-            raise serializers.ValidationError('begin time must be smaller than end time.')
-        # 需要对时间的重叠进行验证。
-        if self.instance is not None:
-            schedules = models.SystemSchedule.objects.exclude(id=self.instance.id)
-        else:
-            schedules = models.SystemSchedule.objects.all()
-        for schedule in schedules:
-            if utils.check_crossing(attrs['begin'], attrs['end'], schedule.begin, schedule.end):
-                raise serializers.ValidationError('Time part of system schedule must be unique.')
+        if 'begin' in attrs and 'end' in attrs:
+            if attrs['begin'] > attrs['end']:
+                raise serializers.ValidationError('begin time must be smaller than end time.')
+            # 需要对时间的重叠进行验证。
+            if self.instance is not None:
+                schedules = models.SystemSchedule.objects.exclude(id=self.instance.id)
+            else:
+                schedules = models.SystemSchedule.objects.all()
+            for schedule in schedules:
+                if utils.check_crossing(attrs['begin'], attrs['end'], schedule.begin, schedule.end):
+                    raise serializers.ValidationError('Time part of system schedule must be unique.')
         return attrs
 
     class Meta:
         model = models.SystemSchedule
-        fields = ('id', 'begin', 'end', 'items')
+        fields = ('id', 'year', 'term', 'begin', 'end')
 
 
 class SystemScheduleItemSerializer(serializers.ModelSerializer):
