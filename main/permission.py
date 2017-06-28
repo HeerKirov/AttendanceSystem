@@ -182,52 +182,6 @@ class Item:
 
 
 class Record:
-    class ExchangeRecordPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
-        }
-
-    class ExchangeDetailRecordPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (BelongName.IsParent, BelongName.IsSub, BelongName.IsSelf,
-                    AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
-        }
-
-    class ExchangeApplyPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root),
-            'POST': (AllAuthorityName.All, AuthorityName.Root)
-        }
-
-    class ExchangeApprovePermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root),
-            'PUT': (AuthorityName.CourseManager, AuthorityName.Office, AuthorityName.Root)
-        }
-
-    class LeaveRecordPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
-        }
-
-    class LeaveDetailRecordPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (BelongName.IsSelf, BelongName.IsParent,
-                    AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
-        }
-
-    class LeaveApplyPermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root),
-            'POST': (AllAuthorityName.All, AuthorityName.Root)
-        }
-
-    class LeaveApprovePermission(UserAuthorityPermission):
-        auth_number = {
-            'GET': (BelongName.IsParent, AuthorityName.Office, AuthorityName.Root),
-            'PUT': (BelongName.IsParent, AuthorityName.Office, AuthorityName.Root)
-        }
-
     class ClassroomRecordPermission(UserAuthorityPermission):
         auth_number = {
             'GET': (AuthorityName.ClassroomManager, AuthorityName.Root)
@@ -254,7 +208,8 @@ class Record:
 
     class AttendanceRecordPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
+            'GET': (AuthorityName.Student, AuthorityName.TeacherManager, AuthorityName.Instructor,
+                    AuthorityName.Office, AuthorityName.StudentManager, AuthorityName.Root)
         }
 
     class AttendanceRecordDetailPermission(UserAuthorityPermission):

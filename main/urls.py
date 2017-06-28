@@ -42,14 +42,6 @@ r.register(r'courses/manage', views.CourseManageDetailViewSet)
 r.register(r'classrooms/basic', views.ClassroomBasicViewSet)
 r.register(r'classrooms/basic', views.ClassroomBasicDetailViewSet)
 r.register(r'classrooms/manage', views.ClassroomManageBasicViewSet)
-r.register(r'exchange/exchanges', views.ExchangeViewSet)
-r.register(r'exchange/exchanges', views.ExchangeDetailViewSet)
-r.register(r'exchange/exchanges-operator', views.ExchangeApplyViewSet, base_name='exchange-operator')
-r.register(r'exchange/exchanges-operator', views.ExchangeApproveViewSet, base_name='exchange-operator')
-r.register(r'exchange/leaves', views.LeaveViewSet)
-r.register(r'exchange/leaves', views.LeaveDetailViewSet)
-r.register(r'exchange/leaves-operator', views.LeaveApplyViewSet, base_name='leave-operator')
-r.register(r'exchange/leaves-operator', views.LeaveApproveViewSet, base_name='leave-operator')
 r.register(r'record/classroom-records', views.ClassroomRecordViewSet)
 r.register(r'record/classroom-records', views.ClassroomRecordDetailViewSet)
 r.register(r'record/classrooms-operator', views.ClassroomCheckViewSet, base_name='classroom-operator')
@@ -68,5 +60,6 @@ urlpatterns_action = [
     url(r'self-authority', views.self_authority),
     url(r'^now', views.timetable_now),
     url(r'^schedule', views.timetable_schedule),
+    url(r'course-table', views.course_table),
     url(r'belong', views.belong_check),
 ]

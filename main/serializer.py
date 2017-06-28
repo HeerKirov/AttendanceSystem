@@ -27,7 +27,7 @@ class PasswordSerializer(serializers.ModelSerializer):
     new_password = serializers.CharField(max_length=255, write_only=True)
 
     def update(self, instance, validated_data):
-        user = authenticate(username=instance.username, password = validated_data['old_password'])
+        user = authenticate(username=instance.username, password=validated_data['old_password'])
         if user is not None:
             user.set_password(validated_data['new_password'])
             user.save()
@@ -92,6 +92,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
         fields = ('id', 'name', 'gender', 'register_time', 'last_login_time',)
+
+
+class AttendanceRecordSerializer(serializers.ModelSerializer):
+    student = serializers.SlugRelatedField(slug_field='username', queryset=models.AsStudent.objects.all())
+    course_manage = serializers.PrimaryKeyRelatedField(queryset=models.CourseManage.objects.all())
+
+    class Meta:
+        model = models.AttendanceRecord
+        fields = ('id', 'date', 'course_number', 'status', 'student', 'course_manage')
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -265,9 +274,8 @@ class CourseBasicSerializer(serializers.ModelSerializer):
     teacher = serializers.SlugRelatedField(slug_field='username', queryset=models.AsTeacher.objects.all(), allow_null=True)
     as_student_set = serializers.SlugRelatedField(
         slug_field='username', queryset=models.AsStudent.objects.all(), many=True, allow_null=True)
-    exchange_record_set = serializers.PrimaryKeyRelatedField(
-        read_only=True, many=True)
 
+    teacher_name_related = serializers.SlugRelatedField(slug_field='name', source='teacher', read_only=True)
     student_name_related = serializers.SlugRelatedField(slug_field='name', source='as_student_set',
                                                         read_only=True, many=True)
 
@@ -280,14 +288,13 @@ class CourseBasicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ('id', 'name', 'teacher', 'as_student_set', 'exchange_record_set',
-                  'student_name_related')
+        fields = ('id', 'name', 'teacher', 'as_student_set', 'year', 'term',
+                  'teacher_name_related', 'student_name_related')
 
 
 class CourseManageSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
-    attendance_record_set = serializers.PrimaryKeyRelatedField(
-        queryset=models.AttendanceRecord.objects.all(), many=True)
+    attendance_record_set = AttendanceRecordSerializer(many=True, read_only=True)
 
     class Meta:
         model = models.CourseManage
@@ -328,118 +335,6 @@ class ClassroomManageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ClassroomManage
         fields = ('id', 'password',)
-
-
-class ExchangeSerializer(serializers.ModelSerializer):
-    course = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all())
-
-    class Meta:
-        model = models.ExchangeRecord
-        fields = ('id', 'from_date', 'from_course_number',
-                  'goal_date', 'goal_course_number',
-                  'note', 'approved', 'course')
-
-
-class ExchangeApplySerializer(serializers.ModelSerializer):
-    course = serializers.PrimaryKeyRelatedField(queryset=models.Course.objects.all())
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        if user is None or not user.is_authenticated:
-            raise serializers.ValidationError('Unauthorized.')
-        profile = user.profile
-        course = validated_data['course']
-        if course is None:
-            raise serializers.ValidationError('Course is not exists.')
-        if not authority.belong_to(course, profile):
-            raise serializers.ValidationError('Permission Denied.')
-        validated_data['approved'] = 'approving'
-        return super().create(validated_data)
-
-    class Meta:
-        model = models.ExchangeRecord
-        fields = ('from_date', 'from_course_number',
-                  'goal_date', 'goal_course_number',
-                  'note', 'course')
-
-
-class ExchangeApproveSerializer(serializers.ModelSerializer):
-
-    def update(self, instance, validated_data):
-        if validated_data['approved'] == 'approving':
-            raise serializers.ValidationError('You can not make it be approving.')
-        if getattr(instance, 'approved') == 'pass':
-            raise serializers.ValidationError('It is already passed.You can not change it.')
-        return super().update(instance, validated_data)
-
-    class Meta:
-        model = models.ExchangeRecord
-        fields = ('id', 'approved')
-
-
-class LeaveSerializer(serializers.ModelSerializer):
-    student = serializers.SlugRelatedField(slug_field='username', queryset=models.AsStudent.objects.all())
-
-    class Meta:
-        model = models.LeaveRecord
-        fields = ('id', 'time_begin', 'time_end', 'note', 'approved', 'student')
-
-
-class LeaveApplySerializer(serializers.ModelSerializer):
-    student = serializers.SlugRelatedField(slug_field='username', queryset=models.AsStudent.objects.all())
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        if user is None or not user.is_authenticated:
-            raise serializers.ValidationError('Unauthorized.')
-        profile = user.profile  # 使用者的profile
-        auth_number = getattr(profile, 'authority').auth  # 获得使用者账户的权限数字
-        student = validated_data['student']  # 申请请假的目标学生
-        if student is None:
-            raise serializers.ValidationError('Student is not exists.')
-
-        # 下面进行权限判别。要求：user是教务处/ROOT，或者user是学生并且是本人。
-        if authority.has_auth(auth_number, authority.AuthorityName.Office) \
-                or authority.has_auth(auth_number, authority.AuthorityName.Root):
-            validated_data['approved'] = 'approving'
-            ins = super().create(validated_data)
-            return ins
-        elif authority.has_auth(auth_number, authority.AuthorityName.Student) \
-                and getattr(profile, 'as_student') == student:
-            validated_data['approved'] = 'approving'
-            ins = super().create(validated_data)
-            return ins
-        else:
-            raise serializers.ValidationError('Permission Denied.')
-
-    class Meta:
-        model = models.LeaveRecord
-        fields = ('id', 'time_begin', 'time_end', 'note', 'student')
-
-
-class LeaveApproveSerializer(serializers.ModelSerializer):
-
-    def update(self, instance, validated_data):
-        # 需要封锁对教师的权限。要求审批者只能是教务处/辅导员/ROOT。
-        user = self.context['request'].user
-        if user is None or not user.is_authenticated:
-            raise serializers.ValidationError('Unauthorized.')
-        profile = user.profile  # 使用者的profile
-        auth_number = getattr(profile, 'authority').auth  # 获得使用者账户的权限数字
-        if authority.has_auth(auth_number, authority.AuthorityName.Teacher) \
-                or authority.has_auth(auth_number, authority.AuthorityName.Office) \
-                or authority.has_auth(auth_number, authority.AuthorityName.Root):
-            if validated_data['approved'] == 'approving':
-                raise serializers.ValidationError('You can not make it be approving.')
-            if getattr(instance, 'approved') == 'pass':
-                raise serializers.ValidationError('It is already passed.You can not change it.')
-            return super().update(instance, validated_data)
-        else:
-            raise serializers.ValidationError('Permission Denied.')
-
-    class Meta:
-        model = models.LeaveRecord
-        fields = ('id', 'approved')
 
 
 class ClassroomRecordSerializer(serializers.ModelSerializer):
@@ -508,17 +403,8 @@ class CourseScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.CourseSchedule
-        fields = ('id', 'year', 'term', 'weeks', 'weekday', 'course_number', 'classroom', 'course',
+        fields = ('id', 'weeks', 'weekday', 'course_number', 'classroom', 'course',
                   'course_name_related', 'classroom_name_related')
-
-
-class AttendanceRecordSerializer(serializers.ModelSerializer):
-    student = serializers.SlugRelatedField(slug_field='username', queryset=models.AsStudent.objects.all())
-    course_manage = serializers.PrimaryKeyRelatedField(queryset=models.CourseManage.objects.all())
-
-    class Meta:
-        model = models.AttendanceRecord
-        fields = ('id', 'date', 'course_number', 'status', 'student', 'course_manage')
 
 
 class SystemScheduleSerializer(serializers.ModelSerializer):
@@ -564,3 +450,23 @@ class SystemScheduleItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SystemScheduleItem
         fields = ('id', 'begin', 'end', 'no', 'system_schedule')
+
+
+class CourseTableScheduleSerializer(serializers.ModelSerializer):
+    classroom_name = serializers.SlugRelatedField(slug_field='name', source='classroom', read_only=True)
+
+    class Meta:
+        model = models.CourseSchedule
+        fields = ('id', 'weeks', 'weekday', 'course_number', 'classroom', 'classroom_name')
+
+
+class CourseTableSerializer(serializers.ModelSerializer):
+    course_schedule_set = CourseTableScheduleSerializer(many=True, read_only=True)
+    teacher_name = serializers.SlugRelatedField(slug_field='name', read_only=True, source='teacher')
+
+    class Meta:
+        model = models.Course
+        fields = ('id', 'name', 'year', 'term', 'teacher', 'teacher_name', 'course_schedule_set')
+
+
+

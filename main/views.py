@@ -16,6 +16,7 @@ from django.contrib.auth.models import User as defaultUser
 import base64
 import json
 import time
+from rest_framework.renderers import JSONRenderer
 
 # Create your views here.
 
@@ -157,6 +158,28 @@ def belong_check(request):
                 relation = 'other'
             data = {'relation': relation}
         return HttpResponse(json.dumps(data), status=200)
+    else:
+        return HttpResponse('Method Not Allowed', status=405)
+
+
+def course_table(request):
+    if not http_basic_auth(request):
+        return HttpResponse('Unauthorized.', status=401)
+    if request.method == 'GET':
+        auth_number = request.user.authority.auth
+        if has_auth(auth_number, AuthorityName.Student):
+            courses = models.Course.objects.filter(as_student_set=request.user.as_student)
+        elif has_auth(auth_number, AuthorityName.Teacher):
+            courses = models.Course.objects.filter(teacher=request.user.as_teacher)
+        else:
+            return HttpResponse('Permission Denied.', status=403)
+        params = request.GET  # 获得传参
+        if 'year' in params:
+            courses = courses.filter(year=params['year'])
+        if 'term' in params:
+            courses = courses.filter(term=params['term'])
+        ser = serializer.CourseTableSerializer(courses, many=True)
+        return HttpResponse(JSONRenderer().render(ser.data), status=200)
     else:
         return HttpResponse('Method Not Allowed', status=405)
 
@@ -373,62 +396,6 @@ class ClassroomManageBasicViewSet(mixins.ListModelMixin,
     search_fields = ('id',)
 
 
-class ExchangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = models.ExchangeRecord.objects.all()
-    serializer_class = serializer.ExchangeSerializer
-    permission_classes = (permissions.Record.ExchangeRecordPermission,)
-    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    filter_fields = ('course',)
-    ordering_fields = ('id', 'course', 'approved')
-    search_fields = ('id', 'course', 'approved')
-
-
-class ExchangeDetailViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = models.ExchangeRecord.objects.all()
-    serializer_class = serializer.ExchangeSerializer
-    permission_classes = (permissions.Record.ExchangeDetailRecordPermission,)
-
-
-class ExchangeApplyViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = models.ExchangeRecord.objects.all()
-    serializer_class = serializer.ExchangeApplySerializer
-    permission_classes = (permissions.Record.ExchangeApplyPermission,)
-
-
-class ExchangeApproveViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    queryset = models.ExchangeRecord.objects.all()
-    serializer_class = serializer.ExchangeApproveSerializer
-    permission_classes = (permissions.Record.ExchangeApprovePermission,)
-
-
-class LeaveViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = models.LeaveRecord.objects.all()
-    serializer_class = serializer.LeaveSerializer
-    permission_classes = (permissions.Record.LeaveRecordPermission,)
-    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    filter_fields = ('student__username',)
-    ordering_fields = ('id', 'student', 'approved')
-    search_fields = ('id', 'student', 'approved')
-
-
-class LeaveDetailViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    queryset = models.LeaveRecord.objects.all()
-    serializer_class = serializer.LeaveSerializer
-    permission_classes = (permissions.Record.LeaveDetailRecordPermission,)
-
-
-class LeaveApplyViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    queryset = models.LeaveRecord.objects.all()
-    serializer_class = serializer.LeaveApplySerializer
-    permission_classes = (permissions.Record.LeaveApplyPermission,)
-
-
-class LeaveApproveViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    queryset = models.LeaveRecord.objects.all()
-    serializer_class = serializer.LeaveApproveSerializer
-    permission_classes = (permissions.Record.LeaveApprovePermission,)
-
-
 class ClassroomRecordViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = models.ClassroomRecord.objects.all()
     serializer_class = serializer.ClassroomRecordSerializer
@@ -436,7 +403,7 @@ class ClassroomRecordViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
     filter_fields = ('student__username', 'classroom_manage')
     ordering_fields = ('id', 'student', 'classroom_manage')
-    search_fields = ('id', 'student', 'classroom_manage')
+    search_fields = ('id', 'student__user__name', 'classroom_manage__id__name')
 
 
 class ClassroomRecordDetailViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
