@@ -179,7 +179,36 @@ def course_table(request):
         if 'term' in params:
             courses = courses.filter(term=params['term'])
         ser = serializer.CourseTableSerializer(courses, many=True)
-        return HttpResponse(JSONRenderer().render(ser.data), status=200)
+        course_table_json = json.loads(JSONRenderer().render(ser.data))
+        # 除了所有的课之外，还需要查询：时间表(包括每天的课数，每节课的上/下课时间)
+        (now_year, now_month, now_day, now_hour, now_minute, now_second, _, _, _) = time.localtime(time.time())
+        date_now = utils.date_to_str(now_year, now_month, now_day)
+        schedules = models.SystemSchedule.objects.filter(begin__lte=date_now).filter(end__gte=date_now)
+        if schedules:
+            schedule = schedules.first()
+            items = models.SystemScheduleItem.objects.filter(system_schedule=schedule).order_by('no')
+            schedule_data = {
+                'count': items.count(),
+                'items': [
+                    {
+                        'begin': utils.time_to_str(item.begin.hour, item.begin.minute, item.begin.second),
+                        'end': utils.time_to_str(item.end.hour, item.end.minute, item.end.second),
+                        'no': item.no,
+                    } for item in items
+                ]
+            }
+        else:
+            schedule_data = {
+                'count': 0,
+                'items': []
+            }
+        # 然后构造总的json数据。
+        data = {
+            'count': schedule_data['count'],
+            'schedule_items': schedule_data['items'],
+            'course_items': course_table_json,
+        }
+        return HttpResponse(json.dumps(data), status=200)
     else:
         return HttpResponse('Method Not Allowed', status=405)
 
@@ -338,8 +367,8 @@ class CourseBasicViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewset
     serializer_class = serializer.CourseBasicSerializer
     permission_classes = (permissions.Item.CourseBasicPermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    filter_fields = ('name', 'teacher__username')
-    ordering_fields = ('id', 'name', 'teacher')
+    filter_fields = ('name', 'teacher__username', 'year', 'term')
+    ordering_fields = ('id', 'name', 'teacher', 'year', 'term')
     search_fields = ('id', 'name', 'teacher')
 
 
@@ -422,9 +451,9 @@ class CourseScheduleViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, view
     serializer_class = serializer.CourseScheduleSerializer
     permission_classes = (permissions.Record.CourseSchedulePermission,)
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    filter_fields = ('classroom', 'course', 'year', 'term')
-    ordering_fields = ('id', 'year', 'term', 'classroom', 'course')
-    search_fields = ('id', 'year', 'term', 'classroom', 'course')
+    filter_fields = ('classroom', 'course')
+    ordering_fields = ('id', 'classroom', 'course')
+    search_fields = ('id', 'classroom', 'course')
 
 
 class CourseScheduleDetailViewSet(mixins.RetrieveModelMixin,

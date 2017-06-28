@@ -132,12 +132,8 @@ def get_profile(user):
         return user.course
     elif isinstance(user, models.AttendanceRecord):
         return user.student
-    elif isinstance(user, models.LeaveRecord):
-        return user.student
     elif isinstance(user, models.ClassroomRecord):
         return user.classroom_manage.id
-    elif isinstance(user, models.ExchangeRecord):
-        return user.course
     else:
         return user
 
