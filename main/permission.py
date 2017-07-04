@@ -132,7 +132,7 @@ class Item:
 
     class ClasssPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.ClassManager, AuthorityName.Root),
+            'GET': (AuthorityName.Instructor, AuthorityName.ClassManager, AuthorityName.Root),
             'POST': (AuthorityName.ClassManager, AuthorityName.Root)
         }
 
@@ -145,7 +145,7 @@ class Item:
 
     class CourseBasicPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.CourseManager, AuthorityName.Root),
+            'GET': (AuthorityName.Teacher, AuthorityName.CourseManager, AuthorityName.Root),
             'POST': (AuthorityName.CourseManager, AuthorityName.Root)
         }
 
@@ -184,7 +184,8 @@ class Item:
 class Record:
     class ClassroomRecordPermission(UserAuthorityPermission):
         auth_number = {
-            'GET': (AuthorityName.ClassroomManager, AuthorityName.Root)
+            'GET': (AuthorityName.Student, AuthorityName.Teacher, AuthorityName.Instructor, AuthorityName.Office,
+                    AuthorityName.ClassroomManager, AuthorityName.Root)
         }
 
     class ClassroomRecordDetailPermission(UserAuthorityPermission):

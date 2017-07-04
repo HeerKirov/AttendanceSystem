@@ -35,7 +35,7 @@ class User(models.Model):
     name = models.CharField(max_length=16, null=True, blank=True)
     gender = models.CharField(max_length=6, choices=GENDER_ENUM, null=True, blank=True)
     register_time = models.DateTimeField(auto_now_add=True)
-    last_login_time = models.DateTimeField(auto_now=True)
+    last_login_time = models.DateTimeField(default='1970-01-01')
     # asStudent, asTeacher, asInstructor, asOffice, asAdmin, Authority
 
     def __str__(self):

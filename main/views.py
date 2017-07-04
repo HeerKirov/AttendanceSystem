@@ -47,6 +47,10 @@ def index(request):
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
+                # 修改最后登录时间
+                (now_year, now_month, now_day, now_hour, now_minute, now_second, _, _, _) = time.localtime(time.time())
+                user.profile.last_login_time = utils.datetime_to_str(now_year, now_month, now_day, now_hour, now_minute, now_second)
+                user.profile.save()
                 return HttpResponse(r'Authenticate success.', status=200)
             else:
                 return HttpResponse(r'This user is not active.', status=401)
