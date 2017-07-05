@@ -10,5 +10,11 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="attendancesystem@120.25.229.109" uuid="b46d0f1a-d7b6-4419-975f-c73e50a5d9f9">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://120.25.229.109:5432/attendancesystem</jdbc-url>
+    </data-source>
   </component>
 </project>
