@@ -41,7 +41,11 @@ def index(request):
     if request.method == 'GET':
         return render(request, 'homepage.html', {'content': "Welcome to Attendance System."})
     elif request.method == 'POST':
-        js = json.loads(request.body)
+        if type(request.body) is bytes:
+            js_data = request.body.decode()
+        else:
+            js_data = request.body
+        js = json.loads(js_data)
         username = js['username']
         password = js['password']
         user = authenticate(username=username, password=password)
@@ -76,6 +80,8 @@ def timetable_schedule(request):
             schedule = schedules.first()
             items = models.SystemScheduleItem.objects.filter(system_schedule=schedule).order_by('no')
             data = {
+                'year': schedule.year,
+                'term': schedule.term,
                 'begin': utils.date_to_str(schedule.begin.year, schedule.begin.month, schedule.begin.day),
                 'end': utils.date_to_str(schedule.end.year, schedule.end.month, schedule.end.day),
                 'items': [

@@ -15,6 +15,7 @@ def add_user(user_id, name, gender, password, default_auth=None):
     """
     user_model = defaultUser.objects.create_user(user_id, password=password)
     user = models.User(id=user_model, username=user_id, name=name, gender=gender)
+    user.save()
     # 计算一下权限数字，并执行一些相关操作
     auth_number = 0
     if default_auth is not None:
@@ -32,7 +33,6 @@ def add_user(user_id, name, gender, password, default_auth=None):
         user=user,
         auth=auth_number
     )
-    user.save()
     user_auth.save()
     return user
 
