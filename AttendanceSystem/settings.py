@@ -101,8 +101,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'attendancesystem',
         'USER': 'heer',
-        'PASSWORD': '262144',
-        'HOST': '120.25.229.109',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
         'PORT': '',
     }
 }
